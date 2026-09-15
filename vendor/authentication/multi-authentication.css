@@ -1,0 +1,166 @@
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+        :root { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+        .wide-panel { width: 95%; max-width: 1100px; }
+        .input-compact { height: 40px; } 
+
+        /* ORIGINAL Fluid Movement */
+        .slider-pill { transition: all 0.4s cubic-bezier(0.2, 1, 0.3, 1); }
+
+        /* Wide Preview Box */
+        .preview-banner {
+            width: 100%; height: 160px;
+            border: 2px dashed rgba(255,255,255,0.08);
+            border-radius: 24px;
+            background-size: cover;
+            background-position: center;
+            background-color: rgba(255,255,255,0.02);
+            transition: all 0.4s ease;
+            position: relative;
+            cursor: pointer;
+        }
+        .preview-banner:hover { border-color: rgba(99, 102, 241, 0.4); }
+
+        /* Dropdown Styling */
+        .custom-select-wrapper { position: relative; cursor: pointer; }
+        .options-menu { 
+            display: none; position: absolute; top: calc(100% + 8px);
+            left: 0; right: 0; background: #151c2c;
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+            z-index: 50; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        .options-menu.active { display: block; animation: slideUpFade 0.2s ease-out; }
+        .option-item { padding: 10px 16px; font-size: 13px; color: #94a3b8; transition: all 0.2s; }
+        .option-item:hover { background: rgba(255,255,255,0.05); color: white; }
+
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .glass-card { background: #0f1115; border: 1px solid rgba(255, 255, 255, 0.05); }
+
+.store-fields {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-10px);
+    overflow: hidden;
+    transition: all 0.4s ease;
+}
+
+.store-fields.active {
+    max-height: 500px; /* enough to fit content */
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ===== GLOBAL SCROLLBAR (WebKit browsers) ===== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.4);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.7);
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99, 102, 241, 0.4) rgba(255, 255, 255, 0.03);
+}
+
+.gradient-move {
+    background: linear-gradient(
+        270deg,
+        #6366f1,
+        #a855f7,
+        #ec4899,
+        #6366f1
+    );
+    background-size: 600% 600%;
+    animation: gradientShift 6s ease infinite;
+}
+
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+body{
+    flex-direction: column;
+}
+
+.alert {
+    background: rgba(15, 17, 21, 0.95);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: white;
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-size: 12px;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    animation: slideIn 0.25s ease;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.alert.success { border-color: rgba(34,197,94,0.4); }
+.alert.error { border-color: rgba(239,68,68,0.4); }
+.alert.info { border-color: rgba(99,102,241,0.4); }
+
+.alert-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    width: 100%;
+    background: rgba(255,255,255,0.08);
+}
+
+.alert-bar-fill {
+    height: 100%;
+    width: 100%;
+    transform-origin: left;
+}
+
+#alert-box {
+    transition: transform 0.25s ease, opacity 0.25s ease;
+    touch-action: none; /* prevents browser scroll conflict */
+    cursor: pointer;
+}
+
+.hide-forgot-password { display: none !important; }  
+
+html {
+  font-size: clamp(14px, 1.2vw, 18px);
+}
+
+.descrption_field {
+    resize: none !important;
+    height: 100px !important;
+    padding: 5px 10px !important;
+}
+
+#home{
+  cursor: pointer;
+}

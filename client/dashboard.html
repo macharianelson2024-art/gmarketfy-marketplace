@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dashboard - Gmarketfy</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="./dashboard.css">
+<link rel="stylesheet" href="./pending.css">
+<script src="./tailwind.js"></script>
+
+  <!-- FAVICON SETUP -->
+<link rel="icon" href="/favicon.ico" />
+
+<!-- PNG favicons -->
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+
+<!-- Apple Touch Icon -->
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+<!-- Android / PWA style icons -->
+<link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
+
+</head>
+
+<body class="bg-[#030406] text-white min-h-screen">
+
+<header class="sticky top-0 z-50 glass border-b border-white/5 px-4 py-4">
+  <div class="max-w-6xl mx-auto header-wrap">
+
+    <div id="home" class="px-5 py-2 rounded-full glass w-fit">
+      <h1 class="text-lg font-extrabold gradient-move tracking-wider">
+        Gmarketfy
+      </h1>
+    </div>
+
+
+
+
+    <div id="nav" class="relative flex bg-white/5 rounded-full p-1 text-sm">
+
+      <div id="slider" class="absolute bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+
+<button class="btn px-5 py-2 rounded-full text-white">Overview</button>
+<button class="btn px-5 py-2 rounded-full text-white/50 relative">
+  Pending
+  <span class="badge pending-notif hidden">0</span>
+</button>
+
+
+      <button class="btn px-5 py-2 rounded-full text-white/50">History</button>
+
+
+<button class="btn px-5 py-2 rounded-full text-white/50 relative">
+  Cart
+  <span class="badge cart-notif hidden">0</span>
+</button>
+
+<button class="btn px-5 py-2 rounded-full text-white/50">Settings</button>
+
+    </div>
+
+    <div id="browse-explore" class="header-action">
+      <button class="bg-white text-black px-4 py-2 rounded-full text-sm font-semibold">
+        Browse
+      </button>
+    </div>
+
+
+
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 py-6 relative">
+
+<div id="loader" class="absolute inset-0 flex items-center justify-center bg-[#030406]/40 backdrop-blur-sm z-50">
+  <div class="w-10 h-10 border-2 border-indigo-500/20 border-t-indigo-400 rounded-full animate-spin"></div>
+</div>
+
+<div id="tabs-wrapper" class="relative">
+
+  <div class="tab active">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+      <div class="card glass p-5 rounded-2xl">
+        <p class="text-xs text-white/40">Transactions Completed</p>
+        <h2 class="text-3xl font-black mt-2" id="transactions-completed">0</h2>
+      </div>
+
+      <div class="card glass p-5 rounded-2xl">
+        <p class="text-xs text-white/40">Products Received</p>
+        <h2 class="text-3xl font-black mt-2" id="products_received">0</h2>
+      </div>
+
+      <div class="card glass p-5 rounded-2xl">
+        <p class="text-xs text-white/40">Pending</p>
+        <h2 class="text-3xl font-black mt-2"  id="pending_products">0</h2>
+      </div>
+
+      <div class="card glass p-5 rounded-2xl">
+        <p class="text-xs text-white/40">Spent</p>
+        <h2 class="text-3xl font-black mt-2"  id="money_spent" >0</h2>
+      </div>
+
+    </div>
+  </div>
+
+<div class="tab">
+  <div id="pending-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center max-w-6xl mx-auto"></div>
+
+  <div id="pending-empty" class="hidden text-center py-16 text-white/25 text-sm">
+    <p class="text-3xl mb-3">📦</p>
+    No pending orders yet.
+  </div>
+</div>
+
+
+
+<div class="tab">
+
+  <!-- STATS -->
+  <div class="grid grid-cols-3 gap-3 mb-5 max-w-6xl mx-auto">
+    <div class="bg-white/4 rounded-2xl p-4">
+      <p class="text-xs text-white/30 mb-1">Total orders</p>
+      <p id="history-total-orders" class="text-2xl font-bold text-white">—</p>
+    </div>
+    <div class="bg-white/4 rounded-2xl p-4">
+      <p class="text-xs text-white/30 mb-1">Total spent</p>
+      <p id="history-total-spent" class="text-2xl font-bold text-indigo-400">—</p>
+    </div>
+    <div class="bg-white/4 rounded-2xl p-4">
+      <p class="text-xs text-white/30 mb-1">This month</p>
+      <p id="history-this-month" class="text-2xl font-bold text-green-400">—</p>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+<!-- FILTERS -->
+<div class="flex gap-2 mb-5 max-w-6xl mx-auto">
+  <button data-filter="all"       class="history-filter-btn text-xs px-4 py-1.5 rounded-lg border border-white/15 bg-white/8 text-white">All</button>
+  <button data-filter="delivered" class="history-filter-btn text-xs px-4 py-1.5 rounded-lg border border-white/8  text-white/40">Delivered</button>
+  <button data-filter="pickup"    class="history-filter-btn text-xs px-4 py-1.5 rounded-lg border border-white/8  text-white/40">Picked up</button>
+</div>
+
+  <!-- GRID -->
+  <div id="history-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center max-w-6xl mx-auto"></div>
+
+  <!-- EMPTY -->
+  <div id="history-empty" class="hidden text-center py-16 text-white/25 text-sm">
+    <p class="text-3xl mb-3">🗂️</p>
+    No order history yet.
+  </div>
+
+</div>
+
+<div class="tab">
+  <div id="cart-list"  class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center max-w-6xl mx-auto"></div>
+
+  <div id="cart-footer" class="hidden mt-5">
+    <div class="flex justify-between items-center px-4 py-3 glass rounded-xl mb-3">
+      <span class="text-sm text-white/40">Total (<span id="cart-item-count">0</span> items)</span>
+      <span class="text-lg font-bold" id="cart-total">KSh 0</span>
+    </div>
+    <button id="submitOrderBtn"
+      class="w-full py-4 rounded-2xl font-bold text-sm text-white"
+      style="background: linear-gradient(135deg,#6366f1,#a855f7); box-shadow: 0 0 24px rgba(99,102,241,0.3);">
+      Submit Order
+    </button>
+  </div>
+
+  <div id="cart-empty" class="text-center py-16 text-white/25 text-sm">
+    <p class="text-3xl mb-3">🛒</p>
+    Your cart is empty.
+  </div>
+
+
+</div>
+
+
+
+  <!--
+    <div class="tab">
+    <h2 class="text-lg font-bold mb-4">Settings</h2>
+    <p class="text-white/40">Settings</p>
+  </div>
+-->
+  <div class="tab">
+
+<div class="max-w-5xl mx-auto space-y-6">
+
+  <!-- HEADER -->
+  <div>
+    <h2 class="text-2xl font-semibold text-white">Settings</h2>
+    <p class="text-sm text-slate-400">
+      Manage your Profile , though you will be prompted to confrirm these settings for delivery you can add them for faster ordering.
+    </p>
+  </div>
+
+  <!-- =========================
+       🧍 client PROFILE
+  ========================== -->
+  <div class="glass p-5 rounded-2xl space-y-5">
+
+    <!-- PROFILE INPUTS -->
+    <div class="grid md:grid-cols-2 gap-4">
+
+      <input id="clientName"
+             class="bg-white/5 p-3 rounded-xl text-sm outline-none text-white"
+             placeholder="Your Name" />
+
+      <input id="phoneNumber"
+             class="bg-white/5 p-3 rounded-xl text-sm outline-none text-white"
+             placeholder="Phone Number" />
+
+      <input id="country"
+             class="bg-white/5 p-3 rounded-xl text-sm outline-none text-white"
+             placeholder="County" />
+
+      <input id="region"
+            class="bg-white/5 p-3 rounded-xl text-sm outline-none text-white"
+            placeholder="State / Region" />
+
+     <input id="city"
+          class="bg-white/5 p-3 rounded-xl text-sm outline-none text-white"
+          placeholder="City" />
+
+      <input id="streetAddress"
+             class="bg-white/5 p-3 rounded-xl text-sm outline-none text-white md:col-span-2"
+             placeholder="Street Address" />
+
+      <input id="Apartment"
+             class="bg-white/5 p-3 rounded-xl text-sm outline-none text-white"
+             placeholder="Apartment Name" />
+
+      <input id="HouseNo"
+      class="bg-white/5 p-3 rounded-xl text-sm outline-none text-white"
+      placeholder="House Number" />
+
+
+
+
+    </div>
+
+    <div class="flex justify-end">
+      <button id="saveProfileBtn"
+              class="px-4 py-2 rounded-xl bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition text-sm">
+        Save Profile
+      </button>
+    </div>
+
+  </div>
+
+  <!-- =========================
+       🚚 DELIVERY SETTINGS
+  ========================== -->
+  <div class="glass p-5 rounded-2xl space-y-5">
+
+    <h3 class="text-white font-semibold">Delivery Settings</h3>
+
+    <!-- TOGGLE -->
+    <div class="flex items-center justify-between">
+
+      <div>
+        <p class="text-sm text-white">Enable Delivery</p>
+        <p class="text-xs text-slate-400">
+          Enable This Feature to set all Products to be Delivered by Vendors who Support delivery
+        </p>
+      </div>
+
+      <div id="deliveryToggle"
+           class="w-12 h-6 flex items-center bg-white/10 rounded-full p-1 cursor-pointer transition">
+
+        <div id="deliveryKnob"
+             class="w-4 h-4 bg-slate-400 rounded-full transition transform"></div>
+
+      </div>
+
+    </div>
+
+    <!-- DELIVERY OPTIONS -->
+    <div class="grid md:grid-cols-2 gap-4">
+    </div>
+
+    <div class="flex justify-end">
+      <button id="updateDeliveryBtn"
+              class="px-4 py-2 rounded-xl bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition text-sm">
+        Update Delivery Options
+      </button>
+    </div>
+
+  </div>
+
+</div>
+
+</div>
+
+</div>
+</main>
+
+
+
+
+<!-- LOADING DOTS -->
+<div id="loading-dots-bar" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-[9999]
+     flex items-center gap-3 px-5 py-3 rounded-2xl
+     bg-black/70 backdrop-blur-md border border-white/10 shadow-xl">
+  <div class="flex items-center gap-1">
+    <span class="dot w-2 h-2 rounded-full bg-indigo-400"></span>
+    <span class="dot w-2 h-2 rounded-full bg-indigo-400"></span>
+    <span class="dot w-2 h-2 rounded-full bg-indigo-400"></span>
+  </div>
+  <p id="loading-dots-message" class="text-xs text-white/70"></p>
+</div>
+<script src="./notification-interaction.js"></script>
+<script type="module" src="./settings.js"></script>
+<script type="module" src="./pending.js"></script>
+<script type="module" src="./history.js"></script>
+<script type="module" src="./delivery-panels.js"></script>
+<script type="module" src="./dashboard.js"></script>
+
+
+    <div id="country-list"
+         class="hidden absolute top-[calc(100%+6px)] left-0 w-48 bg-[#0f1422] border border-white/10 rounded-xl p-1.5 max-h-48 overflow-y-auto z-[9999]">
+    </div>
+
+</body>
+</html>

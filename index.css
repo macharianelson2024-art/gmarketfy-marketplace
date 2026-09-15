@@ -1,0 +1,157 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+:root { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+body {
+  background: #050608;
+}
+
+/* GLASS */
+.glass {
+  background: #0f1115;
+  border: 1px solid rgba(255,255,255,0.05);
+  backdrop-filter: blur(12px);
+}
+
+/* GRADIENT TEXT */
+.gradient-move {
+  background: linear-gradient(270deg,#6366f1,#a855f7,#ec4899,#6366f1);
+  background-size: 600% 600%;
+  animation: gradientShift 6s ease infinite;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% }
+  50% { background-position: 100% }
+  100% { background-position: 0% }
+}
+
+/* BUTTONS */
+.btn-primary {
+  background: white;
+  color: black;
+  transition: all 0.2s ease;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  background: #e5e7eb;
+}
+
+.btn-secondary {
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.btn-secondary:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+/* FLOAT */
+.float {
+  animation: float 6s ease-in-out infinite;
+}
+@keyframes float {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+/* FADE-UP ANIMATION */
+.fade-up {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.7s ease;
+}
+
+.fade-up.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+/* DEFAULT (wide enough for everything in one row) */
+header .flex {
+  flex-wrap: nowrap;
+}
+
+#nav-actions {
+  flex-direction: row;
+}
+
+/* =========================
+   MEDIUM: split into 2 rows
+   Logo row
+   Buttons row together
+========================= */
+@media (max-width: 920px) {
+
+  header .flex {
+    flex-wrap: wrap;
+  }
+
+  #nav-actions {
+    width: 100%;
+    justify-content: center;
+    margin-top: 8px;
+  }
+}
+
+/* =========================
+   SMALL: stack buttons separately
+========================= */
+@media (max-width: 520px) {
+
+  #nav-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+}
+
+#nav-actions {
+  transition: all 0.3s ease;
+}
+
+#nav-actions > * {
+  transition: all 0.25s ease;
+}
+
+header {
+  backdrop-filter: blur(14px);
+  background: rgba(5, 6, 8, 0.6);
+  transition: all 0.3s ease;
+}
+
+/* ===== GLOBAL SCROLLBAR (WebKit browsers) ===== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.4);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.7);
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99, 102, 241, 0.4) rgba(255, 255, 255, 0.03);
+}
+.live-preview-wrapper {
+  padding-bottom: 3rem;
+}
+
+#store-grid {
+  justify-items: center;
+}
+
+#store-grid:has(> div:only-child),
+#store-grid:has(> div:nth-child(2)) {
+  justify-content: center;
+}

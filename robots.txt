@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://marketfy-82c42.web.app/sitemap.xml

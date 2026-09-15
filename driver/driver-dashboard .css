@@ -1,0 +1,709 @@
+/* ============================
+   RESET & BASE
+============================ */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: #030406;
+  color: white;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+  height: 100vh;
+  position: relative;
+  padding-bottom: 80px;
+  overscroll-behavior-y: none;
+}
+
+/* Hide scrollbar but keep functionality */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ============================
+   GLASS EFFECTS
+============================ */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ============================
+   STATUS BADGES
+============================ */
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 100px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-badge.assigned {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.status-badge.out-for-delivery {
+  background: rgba(251, 146, 60, 0.15);
+  color: #fb923c;
+  border: 1px solid rgba(251, 146, 60, 0.2);
+  animation: pulse-badge 2s infinite;
+}
+
+.status-badge.proof-uploaded {
+  background: rgba(236, 72, 153, 0.15);
+  color: #f472b6;
+  border: 1px solid rgba(236, 72, 153, 0.2);
+}
+
+.status-badge.completed {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.2);
+}
+
+@keyframes pulse-badge {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* ============================
+   ORDER CARDS
+============================ */
+.order-card {
+  background: #0c0e12;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  animation: card-in 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Smooth staggered entrance — this keyframe was referenced by
+   JS (style.animationDelay) but never actually defined, so cards
+   used to just snap into place with no animation at all. */
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.order-card:active {
+  transform: scale(0.98);
+}
+
+.order-card .status-bar {
+  height: 3px;
+  border-radius: 100px;
+  margin: -1rem -1rem 1rem -1rem;
+}
+
+.order-card .status-bar.assigned {
+  background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+}
+
+.order-card .status-bar.out-for-delivery {
+  background: linear-gradient(90deg, #fb923c, #fbbf24);
+  animation: shimmer 2s infinite;
+}
+
+.order-card .status-bar.proof-uploaded {
+  background: linear-gradient(90deg, #ec4899, #f472b6);
+}
+
+@keyframes shimmer {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+/* ============================
+   BOTTOM NAVIGATION
+============================ */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(12, 14, 18, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 8px 0;
+  padding-bottom: env(safe-area-inset-bottom, 8px);
+  z-index: 100;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 16px;
+  border-radius: 1rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 10px;
+  font-weight: 600;
+  position: relative;
+  min-width: 60px;
+  touch-action: manipulation;
+}
+
+.nav-item i {
+  font-size: 20px;
+  transition: all 0.2s ease;
+}
+
+.nav-item.active {
+  color: white;
+}
+
+.nav-item.active i {
+  color: #818cf8;
+  transform: translateY(-1px);
+}
+
+.nav-item .badge-dot {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+  border: 2px solid #0c0e12;
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+}
+
+/* ============================
+   TAB CONTENT
+============================ */
+.tab-content {
+  display: none;
+  height: 100%;
+  overflow-y: auto;
+  padding: 0 0 16px 0;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* ============================
+   TOGGLE SWITCH
+============================ */
+.toggle-switch {
+  width: 52px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 100px;
+  padding: 3px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  flex-shrink: 0;
+  touch-action: manipulation;
+}
+
+.toggle-switch.active {
+  background: rgba(52, 211, 153, 0.3);
+}
+
+.toggle-switch .toggle-knob {
+  width: 22px;
+  height: 22px;
+  background: #64748b;
+  border-radius: 50%;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+}
+
+.toggle-switch.active .toggle-knob {
+  transform: translateX(24px);
+  background: #34d399;
+  box-shadow: 0 0 20px rgba(52, 211, 153, 0.3);
+}
+
+/* ============================
+   ACTION BUTTONS
+============================ */
+.action-btn {
+  height: 52px;
+  border-radius: 1rem;
+  font-weight: 700;
+  font-size: 14px;
+  width: 100%;
+  transition: transform 0.15s ease, background 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.action-btn:active {
+  transform: scale(0.96);
+}
+
+.action-btn.primary {
+  background: #818cf8;
+  color: white;
+}
+
+.action-btn.primary:active {
+  background: #6366f1;
+}
+
+.action-btn.success {
+  background: #34d399;
+  color: #0c0e12;
+}
+
+.action-btn.success:active {
+  background: #10b981;
+}
+
+.action-btn.warning {
+  background: #fb923c;
+  color: #0c0e12;
+}
+
+.action-btn.warning:active {
+  background: #f97316;
+}
+
+.action-btn.secondary {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.action-btn.secondary:active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* ============================
+   DROP ZONE
+============================ */
+.drop-zone {
+  border: 2px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 1.5rem;
+  padding: 32px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.02);
+  position: relative;
+  overflow: hidden;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+}
+
+.drop-zone:active {
+  transform: scale(0.97);
+}
+
+.drop-zone.has-image {
+  border-color: rgba(99, 102, 241, 0.3);
+  background: rgba(99, 102, 241, 0.03);
+}
+
+.drop-zone img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 1.5rem;
+}
+
+.drop-zone .hidden {
+  display: none !important;
+}
+
+/* ============================
+   SKELETON
+============================ */
+.skeleton {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 1rem;
+  animation: pulse-skeleton 1.5s infinite;
+}
+
+@keyframes pulse-skeleton {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.1; }
+}
+
+/* ============================
+   TOAST NOTIFICATIONS
+============================ */
+.toast-container {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  padding: 14px 18px;
+  border-radius: 1rem;
+  background: #0c0e12;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+  animation: slide-down 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toast .icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.toast .content {
+  flex: 1;
+}
+
+.toast .title {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.toast .message {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 2px;
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ============================
+   LOADING SPINNER
+============================ */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #818cf8;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================
+   DRIVER STATUS INDICATOR
+============================ */
+.driver-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse-dot 2s infinite;
+}
+
+.driver-status-dot.free {
+  background: #34d399;
+}
+
+.driver-status-dot.off-duty {
+  background: #64748b;
+  animation: none;
+}
+
+.driver-status-dot.on-road {
+  background: #fb923c;
+}
+
+/* ============================
+   MODALS — TRUE SMOOTH FADE
+
+   The old version toggled `display:none <-> flex` and
+   `opacity:0 <-> 1` via the same `.open` class add/remove, in
+   the same synchronous tick. Browsers frequently coalesce that
+   into a single paint (no intermediate frame exists at
+   opacity:0-but-visible), so the transition gets skipped and the
+   modal just pops in.
+
+   Fix: never toggle `display`. Keep the modal permanently
+   `display:flex` and drive visibility purely through
+   opacity + visibility + pointer-events, with a delay on
+   `visibility` so it flips to hidden only *after* the fade-out
+   finishes (and flips to visible instantly on fade-in).
+============================ */
+#order-detail-modal,
+#proof-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.28s ease, visibility 0s linear 0.28s;
+}
+
+#order-detail-modal.open,
+#proof-modal.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 0.28s ease, visibility 0s linear 0s;
+}
+
+/* Shared modal sheet */
+#order-detail-modal .modal-sheet,
+#proof-modal .modal-sheet {
+  background: #0c0e12;
+  border-radius: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  width: 100%;
+  position: relative;
+  transform: scale(0.94) translateY(8px);
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6);
+}
+
+#order-detail-modal.open .modal-sheet,
+#proof-modal.open .modal-sheet {
+  transform: scale(1) translateY(0);
+}
+
+/* Order detail specific */
+#order-detail-modal .modal-sheet {
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 24px 20px 28px;
+}
+
+#order-detail-modal .modal-sheet::-webkit-scrollbar {
+  width: 3px;
+}
+
+#order-detail-modal .modal-sheet::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#order-detail-modal .modal-sheet::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 100px;
+}
+
+/* Proof modal specific */
+#proof-modal .modal-sheet {
+  max-width: 440px;
+  padding: 28px 24px 32px;
+}
+
+/* Shared close button */
+#order-detail-close,
+#proof-modal .modal-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+}
+
+#order-detail-close:hover,
+#proof-modal .modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+}
+
+/* ============================
+   PROOF FULL-SIZE VIEWER
+   Same visibility+opacity fade approach as the modals above,
+   used by openProofFullView() in JS.
+============================ */
+.proof-fullview {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.proof-fullview.open {
+  opacity: 1;
+}
+
+.proof-fullview-inner {
+  position: relative;
+  max-width: 42rem;
+  max-height: 90vh;
+  transform: scale(0.96);
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.proof-fullview.open .proof-fullview-inner {
+  transform: scale(1);
+}
+
+.proof-fullview-inner img {
+  max-width: 100%;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: 1rem;
+  display: block;
+}
+
+.proof-fullview-close {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s ease;
+  touch-action: manipulation;
+}
+
+.proof-fullview-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================
+   UTILITY
+============================ */
+.text-gradient {
+  background: linear-gradient(135deg, #818cf8, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.touch-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Respect reduced-motion preferences — the whole point of
+   this pass was smoothness, not motion for its own sake */
+@media (prefers-reduced-motion: reduce) {
+  .order-card,
+  .status-badge.out-for-delivery,
+  .order-card .status-bar.out-for-delivery,
+  .driver-status-dot,
+  .toast,
+  #order-detail-modal .modal-sheet,
+  #proof-modal .modal-sheet,
+  .proof-fullview-inner {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Safe area for notches */
+@supports (padding: max(0px)) {
+  .bottom-nav {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+}

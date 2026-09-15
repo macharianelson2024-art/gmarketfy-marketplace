@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Driver Dashboard — Gmarketfy</title>
+  
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="./tailwind.js"></script>
+  
+  <!-- Font Awesome (for icons) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="./driver-dashboard .css" />
+    <!-- FAVICON SETUP -->
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
+  <meta name="theme-color" content="#000000" />
+</head>
+
+
+</head>
+
+<body>
+
+<!-- ============================
+     TOAST CONTAINER
+============================ -->
+<div id="toast-container" class="toast-container"></div>
+
+<!-- ============================
+     HEADER
+============================ -->
+<header class="sticky top-0 z-50 glass px-4 py-3 border-b border-white/5">
+  <div class="flex items-center justify-between">
+    <!-- Logo -->
+    <div class="flex items-center gap-3">
+      <h1 class="text-lg font-extrabold text-gradient tracking-wider">Gmarketfy</h1>
+      <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-white/40 border border-white/5">Driver</span>
+    </div>
+    
+    <!-- Status + Actions -->
+    <div class="flex items-center gap-2">
+      <span id="header-status" class="text-[10px] px-3 py-1.5 rounded-full glass flex items-center gap-1.5">
+        <span id="header-status-dot" class="driver-status-dot free"></span>
+        <span id="header-status-label" class="text-white/70 font-medium">Available</span>
+      </span>
+      <button id="logout-btn" class="w-9 h-9 rounded-full glass hover:bg-white/10 transition flex items-center justify-center text-white/40 hover:text-white">
+        <i class="fas fa-sign-out-alt text-sm"></i>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ============================
+     MAIN CONTENT
+============================ -->
+<main class="px-4 pt-4 pb-2 h-[calc(100vh-130px)] overflow-hidden">
+  
+  <!-- TAB 1: ACTIVE ORDERS -->
+  <div id="tab-active" class="tab-content active h-full">
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-3 gap-3 mb-4">
+      <div class="glass rounded-2xl p-3 text-center">
+        <p class="text-[10px] text-white/30 font-medium uppercase tracking-wider">Active</p>
+        <p id="stats-active" class="text-2xl font-black text-white mt-0.5">0</p>
+      </div>
+      <div class="glass rounded-2xl p-3 text-center">
+        <p class="text-[10px] text-white/30 font-medium uppercase tracking-wider">Today</p>
+        <p id="stats-today" class="text-2xl font-black text-white mt-0.5">0</p>
+      </div>
+      <div class="glass rounded-2xl p-3 text-center">
+        <p class="text-[10px] text-white/30 font-medium uppercase tracking-wider">Total</p>
+        <p id="stats-total" class="text-2xl font-black text-white mt-0.5">0</p>
+      </div>
+    </div>
+    
+    <!-- Orders List -->
+    <div id="active-orders-container" class="h-[calc(100%-100px)] overflow-y-auto hide-scrollbar pb-4">
+      <div id="active-orders-list" class="space-y-3">
+        <!-- Orders rendered here -->
+      </div>
+      
+      <!-- Empty State -->
+      <div id="active-empty" class="hidden flex flex-col items-center justify-center h-full text-center py-16">
+        <div class="text-6xl mb-4 opacity-30">🚀</div>
+        <h3 class="text-lg font-bold text-white/40">No Active Deliveries</h3>
+        <p class="text-sm text-white/20 mt-1">You'll see orders here when assigned</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- TAB 2: HISTORY -->
+  <div id="tab-history" class="tab-content h-full">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="flex-1 relative">
+        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-white/20 text-sm"></i>
+        <input id="history-search" type="text" placeholder="Search orders..." 
+               class="w-full pl-9 pr-4 py-3 rounded-2xl glass text-sm text-white placeholder-white/20 outline-none border border-white/5 focus:border-indigo-500/30 transition" />
+      </div>
+      <button id="history-filter-btn" class="w-12 h-12 rounded-2xl glass hover:bg-white/10 transition flex items-center justify-center text-white/40">
+        <i class="fas fa-sliders-h"></i>
+      </button>
+    </div>
+    
+    <div id="history-list-container" class="h-[calc(100%-80px)] overflow-y-auto hide-scrollbar pb-4">
+      <div id="history-list" class="space-y-2">
+        <!-- History items rendered here -->
+      </div>
+      
+      <!-- Empty State -->
+      <div id="history-empty" class="hidden flex flex-col items-center justify-center h-full text-center py-16">
+        <div class="text-6xl mb-4 opacity-30">📋</div>
+        <h3 class="text-lg font-bold text-white/40">No History Yet</h3>
+        <p class="text-sm text-white/20 mt-1">Completed deliveries will appear here</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- TAB 3: PROFILE -->
+  <div id="tab-profile" class="tab-content h-full">
+    <div id="profile-container" class="h-full overflow-y-auto hide-scrollbar pb-4 space-y-4">
+      <!-- Profile content rendered here -->
+    </div>
+  </div>
+  
+</main>
+
+<!-- ============================
+     BOTTOM NAVIGATION
+============================ -->
+<nav class="bottom-nav">
+  <button class="nav-item active" data-tab="active">
+    <i class="fas fa-home"></i>
+    <span>Active</span>
+    <span id="nav-badge" class="badge-dot hidden"></span>
+  </button>
+  
+  <button class="nav-item" data-tab="history">
+    <i class="fas fa-clock"></i>
+    <span>History</span>
+  </button>
+  
+  <button class="nav-item" data-tab="profile">
+    <i class="fas fa-user"></i>
+    <span>Profile</span>
+  </button>
+</nav>
+
+<!-- ============================
+     PROOF UPLOAD MODAL
+============================ -->
+<div id="proof-modal">
+  <div class="modal-sheet">
+    <button id="proof-close-btn" class="modal-close-btn">
+      <i class="fas fa-times"></i>
+    </button>
+    
+    <div class="text-center mb-6">
+      <div class="w-16 h-16 rounded-full bg-indigo-500/10 flex items-center justify-center text-3xl mx-auto mb-3">
+        📸
+      </div>
+      <h3 class="text-xl font-bold text-white">Delivery Proof</h3>
+      <p class="text-sm text-white/40 mt-1">Take a photo to confirm delivery</p>
+    </div>
+    
+    <!-- Drop Zone -->
+    <div id="proof-drop-zone" class="drop-zone">
+      <input type="file" id="proof-file-input" accept="image/*" capture="environment" class="hidden" />
+      <div id="proof-placeholder" class="flex flex-col items-center gap-3">
+        <div class="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center text-4xl">
+          📷
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-white/60">Tap to take photo</p>
+          <p class="text-xs text-white/20 mt-1">or upload from gallery</p>
+        </div>
+      </div>
+      <img id="proof-preview" class="hidden" />
+      <div id="proof-overlay" class="hidden absolute inset-0 bg-black/50 flex items-center justify-center rounded-2xl">
+        <span class="text-xs font-semibold text-white bg-black/50 px-4 py-2 rounded-full">Change Photo</span>
+      </div>
+    </div>
+    
+    <!-- Caption -->
+    <input id="proof-caption" type="text" maxlength="100" 
+           placeholder="Optional note (e.g., Left at gate, customer received)" 
+           class="w-full px-4 py-3.5 rounded-2xl glass text-sm text-white placeholder-white/20 outline-none border border-white/5 focus:border-indigo-500/30 transition mt-4" />
+    
+    <!-- Actions -->
+    <div class="flex gap-3 mt-5 flex-col">
+      <button id="proof-submit-btn" class="action-btn primary px-6 flex-shrink-0" disabled>
+        <span id="proof-submit-text">Confirm Delivery</span>
+        <span id="proof-spinner" class="spinner hidden"></span>
+      </button>
+      <button id="proof-cancel-btn" class="action-btn secondary px-6 flex-shrink-0">
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================
+     ORDER DETAIL MODAL
+============================ -->
+<div id="order-detail-modal">
+  <div class="modal-sheet">
+    <button id="order-detail-close">
+      <i class="fas fa-times"></i>
+    </button>
+    <div id="order-detail-content">
+      <!-- Rendered by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- ============================
+     LOADING OVERLAY
+============================ -->
+<div id="loading-overlay" class="fixed inset-0 z-[400] bg-black/70 backdrop-blur-sm hidden flex items-center justify-center">
+  <div class="flex flex-col items-center gap-4">
+    <div class="spinner w-10 h-10 border-2 border-white/10 border-t-indigo-400"></div>
+    <p id="loading-message" class="text-sm text-white/40">Loading...</p>
+  </div>
+</div>
+
+<!-- ============================
+     SCRIPTS
+============================ -->
+<script type="importmap">
+{
+  "imports": {
+    "firebase/app": "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
+    "firebase/auth": "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js",
+    "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js",
+    "firebase/storage": "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js"
+  }
+}
+</script>
+<script type="module" src="./driver-history.js"></script>
+<script type="module" src="./driver-dashboard.js"></script>
+<script type="module" src="./driver-profile.js"></script>
+
+</body>
+</html>

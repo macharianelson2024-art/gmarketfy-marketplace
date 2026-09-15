@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Gmarketfy | Email Verification</title>
+<!-- ======================================
+   GMARKETF Y / GRESSOR INTERNAL PAGE META
+   DO NOT INDEX (APP / DASHBOARD PAGES)
+====================================== -->
+
+<!-- SEO CONTROL -->
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+<meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+<meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+
+<!-- BASIC PAGE SETUP -->
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+<!-- BRAND IDENTITY -->
+<meta name="application-name" content="Gmarketfy" />
+<meta name="author" content="Gressor" />
+<meta name="creator" content="Gressor" />
+<meta name="publisher" content="Gressor" />
+<meta name="generator" content="Gmarketfy Multi-Vendor Platform" />
+
+<!-- PAGE CLASSIFICATION -->
+<meta name="description" content="Gmarketfy internal platform interface under Gressor ecosystem. Secure application layer for vendors, customers, and system operations." />
+<meta name="keywords" content="Gmarketfy, Gressor, marketplace, multi-vendor system, vendor dashboard, ecommerce platform, secure application" />
+<meta name="referrer" content="no-referrer" />
+
+<!-- SECURITY / CACHE CONTROL -->
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+
+<!-- UI / BROWSER BEHAVIOR -->
+<meta name="format-detection" content="telephone=no" />
+<meta name="theme-color" content="#000000" />
+
+<!-- BRAND OWNERSHIP -->
+<meta name="author" content="Nelson Macharia" />
+<meta name="creator" content="Nelson Macharia" />
+<meta name="copyright" content="© 2026 Gressor" />
+<meta name="publisher" content="Gressor" />
+
+<meta name="application-name" content="Gmarketfy by Gressor" />
+<meta name="owner" content="Nelson Macharia" />
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="email-verification.css">
+<script src="./tailwind.js"></script>
+<!-- FAVICON SETUP -->
+<link rel="icon" href="/favicon.ico" />
+
+<!-- PNG favicons -->
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+
+<!-- Apple Touch Icon -->
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+<!-- Android / PWA style icons -->
+<link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
+
+<!-- Web App Theme Color -->
+<meta name="theme-color" content="#000000" />
+</head>
+
+<body class="bg-[#050608] min-h-screen flex items-center justify-center text-white p-4">
+
+<div class="w-full max-w-md glass rounded-2xl p-6 fade">
+
+<h1 class="text-2xl font-bold">Forgot Password</h1>
+<p class="text-sm text-slate-400 mt-1 mb-6">
+    Enter your email and we’ll send you a reset link.
+</p>
+
+<input 
+    id="email"
+    type="email"
+    placeholder="you@example.com"
+    class="w-full p-3 rounded-lg bg-white/5 border border-white/10 outline-none text-sm mb-4 focus:border-indigo-500"
+/>
+
+<button 
+    id="sendBtn"
+    class="w-full p-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition active:scale-95"
+>
+    Send Reset Link
+</button>
+
+<p id="status" class="text-xs text-slate-400 mt-4"></p>
+
+</div>
+
+<div id="alert-box" class="opacity-0 pointer-events-none transition-all">
+    <div class="w-10 h-1 bg-white/30 rounded-full mx-auto mb-2"></div>
+    <div id="alert-text"></div>
+    <!-- progress bar -->
+    <div class="w-full h-1 bg-white/20 mt-2 rounded-full overflow-hidden">
+        <div id="alert-progress" class="h-full bg-white w-full"></div>
+    </div>
+</div>
+
+<div class="mt-10 flex justify-center w-full max-w-md">
+    <p class="text-[11px] text-slate-500 leading-relaxed text-center px-4">
+
+        <span class="text-white font-semibold">© Gressor</span>
+        <span id="brand-message" class="ml-1"></span>
+
+    </p>
+</div>
+
+<script type="module" src="email-verification.js"></script>
+
+</body>
+</html>

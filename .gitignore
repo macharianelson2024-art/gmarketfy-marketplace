@@ -1,0 +1,105 @@
+# =====================================================================
+# Python / Django
+# =====================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+.Python
+build/
+dist/
+.eggs/
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+db.sqlite3-wal
+db.sqlite3-shm
+/media/
+/staticfiles/
+/static/
+
+# =====================================================================
+# Virtualenvs
+# =====================================================================
+Gvenv/
+venv/
+env/
+ENV/
+.venv/
+.python-version
+
+# =====================================================================
+# Environment / secrets
+# =====================================================================
+.env
+.env.*
+!.env.example
+
+# Firebase Admin SDK / service account keys
+*firebase-adminsdk*.json
+*serviceAccount*.json
+*-firebase-adminsdk-*.json
+.google-credentials.json
+.certificates/
+backend/Gmarketfy/.certificates/
+
+# =====================================================================
+# Firebase
+# =====================================================================
+.firebase/
+firebase-debug.log*
+firebase-debug.*.log*
+.dataconnect
+
+# Uncomment to force each dev to create their own Firebase project link.
+# Leave commented if the team shares one .firebaserc.
+# .firebaserc
+
+# =====================================================================
+# Node / JS tooling
+# =====================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.eslintcache
+.node_repl_history
+*.tgz
+.yarn-integrity
+coverage/
+.nyc_output/
+.grunt/
+bower_components/
+.lock-wscript
+build/Release/
+
+# =====================================================================
+# VSCode
+# =====================================================================
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# =====================================================================
+# OS
+# =====================================================================
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# =====================================================================
+# ngrok / tunnels
+# =====================================================================
+.ngrok/
+ngrok.log
+
+# =====================================================================
+# Misc / your project-specific ignores
+# =====================================================================
+# Uncomment if you have a nested duplicate folder you don't want tracked.
+# multivendor-market-firebase/

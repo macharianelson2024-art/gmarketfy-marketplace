@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- ======================================
+   GMARKETF Y / GRESSOR INTERNAL PAGE META
+   DO NOT INDEX (APP / DASHBOARD PAGES)
+====================================== -->
+
+<!-- SEO CONTROL -->
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+<meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+<meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+
+<!-- BASIC PAGE SETUP -->
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+<!-- BRAND IDENTITY -->
+<meta name="application-name" content="Gmarketfy" />
+<meta name="author" content="Gressor" />
+<meta name="creator" content="Gressor" />
+<meta name="publisher" content="Gressor" />
+<meta name="generator" content="Gmarketfy Multi-Vendor Platform" />
+
+<!-- PAGE CLASSIFICATION -->
+<meta name="description" content="Gmarketfy internal platform interface under Gressor ecosystem. Secure application layer for vendors, customers, and system operations." />
+<meta name="keywords" content="Gmarketfy, Gressor, marketplace, multi-vendor system, vendor dashboard, ecommerce platform, secure application" />
+<meta name="referrer" content="no-referrer" />
+
+<!-- SECURITY / CACHE CONTROL -->
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+
+<!-- UI / BROWSER BEHAVIOR -->
+<meta name="format-detection" content="telephone=no" />
+<meta name="theme-color" content="#000000" />
+
+<!-- BRAND OWNERSHIP -->
+<meta name="author" content="Nelson Macharia" />
+<meta name="creator" content="Nelson Macharia" />
+<meta name="copyright" content="© 2026 Gressor" />
+<meta name="publisher" content="Gressor" />
+
+<meta name="application-name" content="Gmarketfy by Gressor" />
+<meta name="owner" content="Nelson Macharia" />
+<title>Gmarketfy - Vendor Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="./tailwind.js"></script>
+<link rel="stylesheet" href="./dashboard.css">
+
+<!-- FAVICON SETUP -->
+<link rel="icon" href="/favicon.ico" />
+
+<!-- PNG favicons -->
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+
+<!-- Apple Touch Icon -->
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+<!-- Android / PWA style icons -->
+<link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
+
+<!-- Web App Theme Color -->
+<meta name="theme-color" content="#000000" />
+</head>
+
+<body class="bg-[#050608] text-slate-200 min-h-screen flex flex-col">
+
+<!-- NAV -->
+<header class="w-full max-w-full glass mx-auto px-4 py-4 sticky top-0 z-50">
+
+  <div class="flex items-center justify-between gap-4 flex-wrap">
+
+    <!-- LOGO -->
+    <div class="px-5 py-2 rounded-full glass">
+      <h1 class="text-lg font-extrabold gradient-move tracking-wider" id="home">
+        Gmarketfy
+      </h1>
+    </div>
+
+    <!-- NAV -->
+    <div class="flex items-center gap-4">
+
+     <nav class="hidden md:flex items-center gap-3 text-sm text-slate-400 relative">
+          <div id="navIndicator" class="nav-indicator"></div>
+
+        <button id="btnDashboard" class="nav-tab">Dashboard</button>
+        <button id="btnProducts" class="nav-tab">Products</button>
+        <button id="btnOrders" class="nav-tab">Orders</button>
+        <button id="btnAnalytics" class="nav-tab">Analytics</button>
+        <button id="btnSettings" class="nav-tab">Settings</button>
+
+      </nav>
+
+      <button id="btnMenuToggle" class="md:hidden text-xl">☰</button>
+
+    </div>
+
+  </div>
+
+  <!-- MOBILE -->
+  <div id="mobileMenu" class="hidden md:hidden mt-4 glass rounded-2xl p-3 flex flex-col gap-2">
+
+    <button id="mDashboard" class="nav-tab">Dashboard</button>
+    <button id="mProducts" class="nav-tab">Products</button>
+    <button id="mOrders" class="nav-tab">Orders</button>
+    <button id="mAnalytics" class="nav-tab">Analytics</button>
+    <button id="mSettings" class="nav-tab">Settings</button>
+
+  </div>
+
+
+</header>
+
+<!-- CONTENT -->
+<main class="w-full max-w-7xl mx-auto px-6 py-10">
+    <section id="viewDashboard" class="space-y-6">
+
+  <!-- HEADER -->
+  <div class="flex flex-col gap-1">
+    <h2 class="text-2xl font-semibold text-white">
+      Welcome back 👋
+    </h2>
+    <p class="text-sm text-slate-400">
+      Here’s what’s happening with your store today
+    </p>
+  </div>
+
+
+  <!-- KPI CARDS -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+    <!-- CARD -->
+    <div class="glass p-4 rounded-2xl">
+      <p class="text-sm text-slate-400">Revenue</p>
+      <h3 id="kpiRevenue" class="text-xl font-semibold text-white mt-1">$0</h3>
+    </div>
+
+    <div class="glass p-4 rounded-2xl">
+      <p class="text-sm text-slate-400">Orders</p>
+      <h3 id="kpiOrders" class="text-xl font-semibold text-white mt-1">0</h3>
+    </div>
+
+    <div class="glass p-4 rounded-2xl">
+      <p class="text-sm text-slate-400">Products</p>
+      <h3 id="kpiProducts" class="text-xl font-semibold text-white mt-1">0</h3>
+    </div>
+
+    <div class="glass p-4 rounded-2xl">
+      <p class="text-sm text-slate-400">Visitors</p>
+      <h3 id="kpiDashboardVisitors" class="text-xl font-semibold text-white mt-1">0</h3>
+    </div>
+
+  </div>
+
+
+  <!-- MAIN GRID -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- INSIGHTS -->
+    <div class="glass p-5 rounded-2xl">
+      <h3 class="text-white font-semibold mb-4">Insights</h3>
+
+      <div class="space-y-3 text-sm text-slate-400">
+
+        <div class="bg-white/5 rounded-xl px-3 py-2">
+          No issues detected ✅
+        </div>
+
+        <div class="bg-white/5 rounded-xl px-3 py-2">
+          Orders stable today
+        </div>
+
+        <div class="bg-white/5 rounded-xl px-3 py-2">
+          Keep your store updated regularly
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+
+  
+
+
+
+
+  </div>
+
+</section>
+
+
+
+<section id="viewProducts" class="hidden space-y-6">
+
+  <!-- HEADER -->
+  <div class="flex items-center justify-between flex-wrap gap-3">
+    <div>
+      <h2 class="text-2xl font-semibold text-white">Products</h2>
+      <p class="text-sm text-slate-400">Manage your store products</p>
+    </div>
+
+    <button id="btnOpenAddProduct"
+      class="btn-primary px-5 py-2 rounded-full text-sm font-medium">
+      + Add Product
+    </button>
+  </div>
+
+
+ 
+
+
+  <!-- PRODUCTS GRID -->
+  <div id="productsGrid"
+    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+  </div>
+
+
+  <!-- EMPTY STATE -->
+  <div id="emptyProducts"
+    class="hidden glass p-10 rounded-2xl text-center text-slate-400">
+
+    <p class="mb-3">No products yet</p>
+    <button id="btnEmptyAdd"
+      class="btn-primary px-5 py-2 rounded-full text-sm">
+      Add your first product
+    </button>
+
+  </div>
+
+
+  <!-- ADD PRODUCT MODAL -->
+  <div id="addProductModal"
+  class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 
+  opacity-0 pointer-events-none transition-all duration-300 p-4 overflow-y-auto">
+
+   <div class="glass w-full max-w-lg max-h-[90vh] overflow-y-auto 
+p-4 sm:p-6 rounded-2xl space-y-4 
+scale-95 opacity-0 transition-all duration-300"
+id="productModalBox">
+      <h3 class="text-white text-lg font-semibold">Add Product</h3>
+
+<!-- PRODUCT FORM -->
+
+<div class="space-y-4">
+
+  <input id="productName"
+    type="text"
+    placeholder="Product name"
+    class="w-full bg-white/5 px-4 py-3 rounded-xl text-sm outline-none
+           border border-white/10 focus:border-indigo-500
+           focus:ring-2 focus:ring-indigo-500/20 transition text-sm sm:text-base" />
+
+  <input id="productPrice"
+    type="text"
+    placeholder="Price"
+    class="w-full bg-white/5 px-4 py-3 rounded-xl text-sm outline-none
+           border border-white/10 focus:border-indigo-500
+           focus:ring-2 focus:ring-indigo-500/20 transition
+           appearance-none text-sm sm:text-base" />
+<!-- CURRENCY SELECTOR -->
+<div class="relative">
+
+  <button id="currencyBtn"
+    class="w-full bg-white/5 px-4 py-3 rounded-xl text-sm text-left
+           border border-white/10 hover:border-indigo-500
+           transition flex justify-between items-center">
+
+    <span id="selectedCurrency">KES</span>
+
+    <span class="text-white/40">▼</span>
+  </button>
+
+  <!-- DROPDOWN -->
+  <div id="currencyDropdown"
+    class="hidden absolute z-50 mt-2 w-full max-h-60 overflow-y-auto
+           bg-[#151c2c] border  backdrop-blur-lg border border-white/10
+           rounded-xl shadow-lg">
+
+  </div>
+
+</div>
+  <!-- CUSTOM STOCK INPUT -->
+  <div class="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
+
+    <button type="button" id="stockMinus"
+      class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 transition text-white">
+      −
+    </button>
+
+    <input id="productStock"
+      type="number"
+      value="0"
+      class="w-full text-center bg-transparent outline-none text-sm" />
+
+    <button type="button" id="stockPlus"
+      class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 transition text-white">
+      +
+    </button>
+
+  </div>
+
+  <!-- CATEGORY INPUT -->
+<input id="productCategory"
+  type="text"
+  placeholder="Category (e.g Shoes, Electronics, Food...)"
+  class="w-full bg-white/5 px-4 py-3 rounded-xl text-sm outline-none
+         border border-white/10 focus:border-indigo-500
+         focus:ring-2 focus:ring-indigo-500/20 transition text-sm sm:text-base" />
+  <textarea id="productDesc"
+    placeholder="Description"
+    rows="3"
+    class="w-full bg-white/5 px-4 py-3 rounded-xl text-sm outline-none
+           border border-white/10 focus:border-indigo-500
+           focus:ring-2 focus:ring-indigo-500/20 transition resize-none"></textarea>
+
+</div>
+
+      <!-- IMAGE UPLOAD -->
+      <div class="bg-white/5 p-4 rounded-xl text-center text-sm text-slate-400">
+<!-- IMAGE UPLOAD -->
+<div class="space-y-4">
+
+  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+    Product Image
+  </label>
+
+  <!-- PREVIEW -->
+<div id="product-image-preview"
+  class="h-40 rounded-xl bg-white/5 flex items-center justify-center cursor-pointer
+         overflow-hidden border border-white/10 hover:border-indigo-500
+         transition relative group">
+
+  <div id="product-upload-placeholder"
+    class="flex flex-col items-center gap-2 text-slate-500 text-xs group-hover:text-indigo-400 transition">
+
+    <span>Click to upload image</span>
+  </div>
+
+  <img id="product-preview-img"
+    class="hidden w-full h-full object-cover group-hover:scale-105 transition duration-300"/>
+
+</div>
+
+  <input type="file" id="productImageInput" class="hidden" accept="image/*">
+
+</div>      </div>
+
+      <!-- ACTIONS -->
+      <div class="flex justify-end gap-2 pt-2">
+        <button id="btnCloseModal"
+          class="px-4 py-2 text-sm text-slate-400">
+          Cancel
+        </button>
+
+        <button id="btnSaveProduct"
+          class="btn-primary px-5 py-2 rounded-lg text-sm">
+          Save
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+
+<section id="viewOrders" class="hidden">
+
+  <div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- HEADER -->
+    <div class="flex items-center justify-between flex-wrap gap-3">
+
+      <div>
+        <h2 class="text-2xl font-semibold text-white">Orders</h2>
+        <p class="text-sm text-slate-400">Manage customer purchases</p>
+      </div>
+
+
+    </div>
+
+    <!-- ORDERS GRID -->
+    <div id="ordersList" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    </div>
+
+    <!-- EMPTY STATE -->
+   <div id="emptyOrders" class="hidden glass p-10 rounded-2xl text-center text-slate-400">
+      <p class="text-sm mb-2">No orders yet</p>
+      <p class="text-xs text-slate-500">
+        Orders will appear here when customers purchase products
+      </p>
+    </div>
+
+  </div>
+
+</section>
+
+<section id="viewAnalytics" class="hidden">
+
+  <div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- HEADER -->
+    <div>
+      <h2 class="text-2xl font-semibold text-white">Analytics</h2>
+      <p class="text-sm text-slate-400">
+        Real-time insights powered by your store data
+      </p>
+    </div>
+
+    <!-- KPI GRID -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+      <div class="glass p-4 rounded-2xl">
+        <p class="text-xs text-slate-400">Revenue</p>
+        <h3 id="kpiRevenueAnalytics" class="text-2xl font-semibold text-white">KES 0</h3>
+      </div>
+
+      <div class="glass p-4 rounded-2xl">
+        <p class="text-xs text-slate-400">Orders</p>
+        <h3 id="kpiOrdersAnalytics" class="text-2xl font-semibold text-white">0</h3>
+      </div>
+
+      <div class="glass p-4 rounded-2xl">
+        <p class="text-xs text-slate-400">Visitors</p>
+        <h3 id="kpiVisitorsAnalytics" class="text-2xl font-semibold text-white">0</h3>
+      </div>
+
+      <div class="glass p-4 rounded-2xl">
+        <p class="text-xs text-slate-400">Conversion</p>
+        <h3 id="kpiConversionAnalytics" class="text-2xl font-semibold text-white">0%</h3>
+      </div>
+
+    </div>
+
+    <!-- MAIN CHART -->
+    <div class="glass p-5 rounded-2xl">
+      <h3 class="text-sm text-white mb-3">Revenue Overview</h3>
+      <canvas id="revenueChart" height="120"></canvas>
+    </div>
+
+    <!-- SECOND ROW -->
+    <div class="grid md:grid-cols-2 gap-5">
+
+      <!-- ORDERS CHART -->
+      <div class="glass p-5 rounded-2xl">
+        <h3 class="text-sm text-white mb-3">Orders Status</h3>
+        <canvas id="ordersChart" height="140"></canvas>
+      </div>
+    <!-- PENDING ORDERS -->
+    <div class="glass p-5 rounded-2xl">
+      <h3 class="text-sm text-white mb-3">Pending Orders</h3>
+      <div id="pendingOrdersCard" class="space-y-2"></div>
+      <p class="text-xs text-slate-500">No pending orders</p>
+    </div>
+      <!-- PRODUCTS PERFORMANCE -->
+      <div class="glass p-5 rounded-2xl">
+        <h3 class="text-sm text-white mb-3">Top Products</h3>
+        <div id="topProductsCard" class="space-y-2"></div></div>
+
+    </div>
+
+    <!-- INSIGHT BOX -->
+    <div class="glass p-5 rounded-2xl text-sm text-slate-400">
+      Live analytics will update automatically as Firebase data changes.
+    </div>
+
+  </div>
+<div id="analyticsStatus" class="text-xs text-slate-500 mt-2"></div>
+</section>
+
+
+<section id="viewSettings" class="hidden">
+
+<div class="max-w-5xl mx-auto space-y-6">
+
+  <!-- HEADER -->
+  <div>
+    <h2 class="text-2xl font-semibold text-white">Settings</h2>
+    <p class="text-sm text-slate-400">
+      Manage your store profile and delivery configuration
+    </p>
+  </div>
+
+  <!-- =========================
+       🧍 STORE PROFILE
+  ========================== -->
+  <div class="glass p-5 rounded-2xl space-y-5">
+
+    <h3 class="text-white font-semibold">Store Profile</h3>
+
+    <!-- STORE BANNER -->
+    <div class="flex flex-col items-start gap-2">
+
+      <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+        Store Banner
+      </label>
+
+      <div id="image-preview"
+     class="w-full h-56 sm:h-64 md:h-72 lg:h-80 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden cursor-pointer relative group">
+        <!-- Placeholder -->
+        <div id="upload-placeholder"
+             class="flex flex-col items-center gap-2">
+
+          <svg xmlns="http://www.w3.org/2000/svg"
+               class="h-6 w-6 text-slate-600 group-hover:text-indigo-400 transition-colors"
+               fill="none"
+               viewBox="0 0 24 24"
+               stroke="currentColor">
+
+            <path stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+
+          <span class="text-[10px] font-bold text-slate-600 tracking-widest uppercase">
+            Upload Brand Image
+          </span>
+
+        </div>
+
+        <!-- Preview -->
+        <img id="bannerPreview"
+             class="w-full h-full object-cover hidden" />
+
+      </div>
+
+      <input type="file"
+             id="bannerUpload"
+             class="hidden"
+             accept="image/*">
+
+    </div>
+
+    <!-- PROFILE INPUTS -->
+    <div class="grid md:grid-cols-2 gap-4">
+
+      <input id="storeName"
+             class="bg-white/5 p-3 rounded-xl text-sm outline-none text-white"
+             placeholder="Store Name" />
+
+      <input id="phoneNumber"
+             class="bg-white/5 p-3 rounded-xl text-sm outline-none text-white"
+             placeholder="Phone Number" />
+
+      <input id="streetAddress"
+             class="bg-white/5 p-3 rounded-xl text-sm outline-none text-white md:col-span-2"
+             placeholder="Street Address" />
+
+      <input id="city"
+             class="bg-white/5 p-3 rounded-xl text-sm outline-none text-white"
+             placeholder="City" />
+
+      <input id="region"
+             class="bg-white/5 p-3 rounded-xl text-sm outline-none text-white"
+             placeholder="State / Region" />
+
+      <input id="postalCode"
+             class="bg-white/5 p-3 rounded-xl text-sm outline-none text-white"
+             placeholder="Postal Code" />
+
+      <input id="country"
+             class="bg-white/5 p-3 rounded-xl text-sm outline-none text-white"
+             placeholder="Country" />
+
+    </div>
+
+    <textarea id="storeDescription"
+              class="bg-white/5 p-3 rounded-xl text-sm outline-none text-white w-full h-24"
+              placeholder="Store Description"></textarea>
+
+    <div class="flex justify-end">
+      <button id="saveProfileBtn"
+              class="px-4 py-2 rounded-xl bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition text-sm">
+        Save Profile
+      </button>
+    </div>
+
+  </div>
+
+  <!-- =========================
+       🚚 DELIVERY SETTINGS
+  ========================== -->
+  <div class="glass p-5 rounded-2xl space-y-5">
+
+    <h3 class="text-white font-semibold">Delivery Settings</h3>
+
+    <!-- TOGGLE -->
+    <div class="flex items-center justify-between">
+
+      <div>
+        <p class="text-sm text-white">Enable Delivery</p>
+        <p class="text-xs text-slate-400">
+          Allow customers to request delivery
+        </p>
+      </div>
+
+      <div id="deliveryToggle"
+           class="w-12 h-6 flex items-center bg-white/10 rounded-full p-1 cursor-pointer transition">
+
+        <div id="deliveryKnob"
+             class="w-4 h-4 bg-slate-400 rounded-full transition transform"></div>
+
+      </div>
+
+    </div>
+
+    <!-- DELIVERY OPTIONS -->
+    <div class="grid md:grid-cols-2 gap-4">
+
+      <input id="deliveryFee"
+             class="bg-white/5 p-3 rounded-xl text-sm outline-none text-white"
+             placeholder="Delivery Fee" />
+
+      <!-- MODE -->
+      <div class="relative z-50">
+
+        <div id="modeDropdownBtn"
+             class="bg-white/5 p-3 rounded-xl text-sm text-white cursor-pointer flex justify-between items-center">
+
+          <span id="modeSelected">Select Mode</span>
+          <span class="text-slate-400">⌄</span>
+
+        </div>
+
+        <div id="modeDropdown"
+             class="absolute mt-2 w-full bg-[#0f172a] border border-white/10 rounded-xl overflow-hidden hidden z-50">
+
+          <div class="p-3 hover:bg-white/5 cursor-pointer text-sm text-white mode-option"
+               data-value="none">No Delivery</div>
+
+          <div class="p-3 hover:bg-white/5 cursor-pointer text-sm text-white mode-option"
+               data-value="static">Static</div>
+
+          <div class="p-3 hover:bg-white/5 cursor-pointer text-sm text-white mode-option"
+               data-value="dynamic">Dynamic</div>
+
+        </div>
+
+      </div>
+
+      <!-- TYPE -->
+      <div class="relative z-50">
+
+        <div id="typeDropdownBtn"
+             class="bg-white/5 p-3 rounded-xl text-sm text-white cursor-pointer flex justify-between items-center">
+
+          <span id="typeSelected">Select Type</span>
+          <span class="text-slate-400">⌄</span>
+
+        </div>
+
+        <div id="typeDropdown"
+             class="absolute mt-2 w-full bg-[#0f172a] border border-white/10 rounded-xl overflow-hidden hidden z-50">
+
+          <div class="p-3 hover:bg-white/5 cursor-pointer text-sm text-white type-option"
+               data-value="none">None</div>
+
+          <div class="p-3 hover:bg-white/5 cursor-pointer text-sm text-white type-option"
+               data-value="internal">Internal</div>
+
+          <div class="p-3 hover:bg-white/5 cursor-pointer text-sm text-white type-option"
+               data-value="third-party">Third Party</div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="flex justify-end">
+      <button id="updateDeliveryBtn"
+              class="px-4 py-2 rounded-xl bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition text-sm">
+        Update Delivery Options
+      </button>
+    </div>
+
+  </div>
+
+</div>
+
+</section>
+
+<div id="globalLoader"
+     class="fixed inset-0  flex items-center justify-center hidden z-50">
+
+  <div class="w-12 h-12 border-4 border-white/20 border-t-indigo-500 rounded-full animate-spin"></div>
+
+</div>
+
+
+</main>
+<div id="orderDetailsModal"
+     class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition">
+
+  <div id="orderDetailsBox"
+       class="glass w-full max-w-lg p-6 rounded-2xl space-y-4 scale-95 opacity-0 transition">
+
+    <!-- HEADER -->
+    <div class="flex justify-between items-center">
+      <h3 class="text-white text-lg font-semibold">Order Details</h3>
+      <button id="closeOrderDetails" class="text-white/60 hover:text-white">✕</button>
+    </div>
+
+    <!-- CONTENT -->
+    <div id="orderDetailsContent" class="space-y-4 text-sm text-white/80"></div>
+
+  </div>
+</div>
+<script type="module" src="./dashboard.js"></script>
+<script type="module" src="orders.js"></script>
+<script type="module" src="./analytics.js"></script>
+<script type="module" src="./settings.js"></script>
+</body>
+</html>

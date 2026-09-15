@@ -1,0 +1,333 @@
+ html{
+      scroll-behavior: smooth;
+      height: 100vh;
+    }
+    body{
+    height: 100%;
+  
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .spin {
+      animation: spin 0.8s linear infinite;
+    }
+    
+    /* Precision Utility: Ensures the slider sits perfectly over the grid cells */
+    .tab-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      position: relative;
+    }
+
+  .gradient-move {
+  background: linear-gradient(270deg,#6366f1,#a855f7,#ec4899,#6366f1);
+  background-size: 600% 600%;
+  animation: gradientShift 6s ease infinite;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% }
+  50% { background-position: 100% }
+  100% { background-position: 0% }
+}
+
+.glass {
+  background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.fade-up {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeUp 0.5s ease forwards;
+}
+
+@keyframes fadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-switch {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+}
+
+.fade-switch.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+
+
+.main-content{
+  width: 100%;
+}
+
+#contentWrapper{
+  width: 100%;
+}
+
+#productsGrid , #storesGrid{
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.wide-screen-vendor-info-panel{
+  width: 0%;
+  opacity: 0;
+  pointer-events: none;
+  border-left: 1px solid rgba(255,255,255,0.1);
+  height: 100vh;
+  max-height: 100vh; 
+  transition: all 0.3s ease;
+  overflow-y: auto !important;
+}
+
+#home{
+  cursor: pointer;
+}
+/* ===== GLOBAL SCROLLBAR (WebKit browsers) ===== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.4);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.7);
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99, 102, 241, 0.4) rgba(255, 255, 255, 0.03);
+}
+
+.show-wide-screen-vendor-info-panel{
+  width:25%;
+  pointer-events: all;
+  opacity: 1;
+}
+
+.loading-state{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 10px;
+
+}
+
+
+.glow-animation {
+  /* Ultra-minimal styling */
+  font-weight: 300;
+  letter-spacing: 0.05em;
+  color: #94a3b8; /* Dull Slate-400 grey */
+  
+  /* Smooth, slow pulse */
+  animation: minimal-pulse 4s infinite ease-in-out;
+}
+
+@keyframes minimal-pulse {
+  0%, 100% {
+    opacity: 0.3; /* Almost hidden */
+    filter: saturate(0); /* Grayscale */
+  }
+  50% {
+    opacity: 0.7; /* Becomes slightly more visible */
+    filter: saturate(1); /* Brings back a hint of the indigo undertone */
+    color: #64748b; /* Shifts slightly to a darker grey-blue */
+  }
+}
+
+#vendorPanel{
+}
+
+@keyframes floatUpDown {
+  0% {
+    transform: translate(-50%, 0px);
+  }
+  50% {
+    transform: translate(-50%, -6px);
+  }
+  100% {
+    transform: translate(-50%, 0px);
+  }
+}
+
+.floating-back-btn {
+  animation: floatUpDown 2.2s ease-in-out infinite;
+}
+
+.floating-back-btn:hover {
+  animation-play-state: paused;
+}
+
+.show-modal {
+  opacity: 1 !important;
+  transform: scale(1) !important;
+}
+
+.input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  outline: none;
+}
+
+.qtyBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.08);
+}
+
+.deliveryBtn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.05);
+}
+
+.deliveryBtn.active {
+  background: rgba(16,185,129,0.2);
+  border: 1px solid #10b981;
+}
+
+.timeCard {
+  padding: 10px;
+  border-radius: 12px;
+  text-align: center;
+  background: rgba(255,255,255,0.05);
+  cursor: pointer;
+}
+
+
+
+
+/* DATE BUTTON */
+/* DATE BUTTONS */
+
+.dateBtn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.active-delivery-btn{
+  background: rgba(99, 102, 241, 0.25);
+  border: 1px solid rgba(99, 102, 241, 0.7);
+  color: #c7d2fe; /* soft indigo text */
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
+}
+
+.dateBtn:hover {
+  border-color: rgba(99, 102, 241, 0.5);
+  background: rgba(99, 102, 241, 0.1);
+  transform: scale(1.05);
+}
+
+/* SELECTED DATE (INDIGO VIBE) */
+.active{
+  background: rgba(99, 102, 241, 0.25);
+  border: 1px solid rgba(99, 102, 241, 0.7);
+  color: #c7d2fe; /* soft indigo text */
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
+  transform: scale(1.1);
+}
+
+.timeCard.active-time {
+  background: rgba(99, 102, 241, 0.25);
+  border: 1px solid rgba(99, 102, 241, 0.7);
+  color: #c7d2fe; /* soft indigo text */
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
+}
+
+
+/* ORDER MODAL CARD */
+#orderBox {
+  background: rgba(7, 8, 10, 0.92); /* slate-900-ish */
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  color: white;
+}
+
+/* optional: subtle inner glow */
+#orderBox::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.08);
+}
+
+#datePreview {
+  letter-spacing: 0.3px;
+  transition: 0.2s ease;
+}
+
+.star {
+  transition: all 0.2s ease;
+  cursor: pointer;
+  font-size: 28px;
+  filter: drop-shadow(0 0 6px rgba(234, 179, 8, 0.15));
+}
+
+.star:hover {
+  transform: scale(1.2);
+  filter: drop-shadow(0 0 10px rgba(234, 179, 8, 0.4));
+}
+
+/* =========================
+   SEARCH SECTION
+========================= */
+.search-bar-entry {
+  opacity: 0;
+  transform: translateY(-8px);
+  animation: searchEntrance 0.4s ease-out 0.1s forwards;
+}
+
+@keyframes searchEntrance {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#searchBar:focus-within #searchIcon {
+  color: rgba(99, 102, 241, 0.6);
+}
+
+
+
+#searchBar:focus-within #searchIcon {
+  color: rgba(99, 102, 241, 0.6);
+}

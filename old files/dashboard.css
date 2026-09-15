@@ -1,0 +1,171 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+body {
+  background: #050608;
+}
+
+/* GLASS */
+.glass {
+  background: #0f1115;
+  border: 1px solid rgba(255,255,255,0.05);
+  backdrop-filter: blur(12px);
+}
+
+/* BRAND GRADIENT */
+.gradient-move {
+  background: linear-gradient(270deg,#6366f1,#a855f7,#ec4899,#6366f1);
+  background-size: 600% 600%;
+  animation: gradientShift 6s ease infinite;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% }
+  50% { background-position: 100% }
+  100% { background-position: 0% }
+}
+
+/* =========================
+   NAV TAB (FIXED CAPSULE SYSTEM)
+========================= */
+
+.nav-tab {
+  padding: 8px 14px;
+  border-radius: 999px;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* hover */
+.nav-tab:hover {
+  color: white;
+}
+
+/* MOBILE MENU */
+#mobileMenu {
+  transition: all 0.25s ease;
+}
+
+
+/* container must be relative (already added in HTML nav) */
+
+.nav-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  height: 100%;
+  width: 0px;
+
+  border-radius: 999px;
+
+  background: rgba(99, 102, 241, 0.18);
+  border: 1px solid rgba(99, 102, 241, 0.45);
+  box-shadow: 0 0 18px rgba(99,102,241,0.25);
+
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* tabs must sit above indicator */
+.nav-tab {
+  position: relative;
+  z-index: 1;
+  padding: 8px 14px;
+  border-radius: 999px;
+  transition: color 0.2s ease;
+}
+
+.nav-tab.active {
+  color: white;
+}
+
+/* =============================== */
+/* REMOVE NUMBER INPUT SPINNERS */
+/* =============================== */
+
+/* Chrome, Safari, Edge, Opera */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* ===== GLOBAL SCROLLBAR (WebKit browsers) ===== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.4);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.7);
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99, 102, 241, 0.4) rgba(255, 255, 255, 0.03);
+}
+
+
+.fade-up {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: fadeUp 0.35s ease forwards;
+}
+
+@keyframes fadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.product-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+}
+
+.fade-in {
+  animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+#home{
+  cursor: pointer;
+}

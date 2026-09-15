@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vendor Dashboard — Gmarketfy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="./vendor-dashboard.css" />
+  <script src="./tailwind.js"></script>
+
+  <!-- FAVICON SETUP -->
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
+  <meta name="theme-color" content="#000000" />
+</head>
+
+<body class="bg-[#030406] text-white min-h-screen font-sans antialiased">
+
+<!-- =========================
+     HEADER
+========================= -->
+<header class="sticky top-0 z-50 glass border-b border-white/5 px-4 py-3">
+  <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+
+    <!-- LOGO -->
+    <div id="home" class="px-5 py-2 rounded-full glass w-fit cursor-pointer shrink-0">
+      <h1 class="text-base sm:text-lg font-extrabold gradient-move tracking-wider whitespace-nowrap">
+        Gmarketfy
+      </h1>
+    </div>
+
+
+<nav id="nav-bar" class="relative flex w-full items-stretch gap-1 p-1 bg-black/40 rounded-xl">
+  <!-- slider sits behind buttons -->
+<span id="slider" class="slider-gradient absolute top-0 left-0 rounded-lg transition-all duration-300 ease-out pointer-events-none"></span>
+
+
+  <button data-tab="0" class="nav-btn flex-1 basis-0 min-w-0 text-center px-3 py-2 text-sm relative z-10">Overview</button>
+  <button data-tab="1" class="nav-btn flex-1 basis-0 min-w-0 text-center px-3 py-2 text-sm relative z-10">Products</button>
+  <button data-tab="2" class="nav-btn flex-1 basis-0 min-w-0 text-center px-3 py-2 text-sm relative z-10">Orders</button>
+  <button data-tab="3" class="nav-btn flex-1 basis-0 min-w-0 text-center px-3 py-2 text-sm relative z-10">Drivers</button>
+  <button data-tab="4" class="nav-btn flex-1 basis-0 min-w-0 text-center px-3 py-2 text-sm relative z-10">Analytics</button>
+  <button data-tab="5" class="nav-btn flex-1 basis-0 min-w-0 text-center px-3 py-2 text-sm relative z-10">Settings</button>
+  <button data-tab="6" class="nav-btn flex-1 basis-0 min-w-0 text-center px-3 py-2 text-sm relative z-10">Vault</button>
+</nav>
+
+
+
+    <!-- MOBILE HAMBURGER -->
+    <button id="mobile-menu-trigger" class="md:hidden relative w-10 h-10 flex items-center justify-center rounded-xl glass hover:bg-white/10 transition">
+      <svg id="menu-icon" class="w-5 h-5 text-white/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="4" y1="6" x2="20" y2="6"/>
+        <line x1="4" y1="12" x2="20" y2="12"/>
+        <line x1="4" y1="18" x2="20" y2="18"/>
+      </svg>
+    </button>
+
+    <!-- EXPLORE LINK -->
+    <a href="/explore.html" class="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-black text-sm font-semibold hover:bg-gray-200 transition shrink-0">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      Explore
+    </a>
+
+  </div>
+</header>
+
+<!-- =========================
+     MOBILE NAV MODAL
+========================= -->
+<div id="mobile-nav-overlay" class="fixed inset-0 z-[60] bg-black/60 backdrop-blur-md hidden opacity-0 transition-opacity duration-300">
+  <div id="mobile-nav-panel" class="absolute bottom-0 left-0 right-0 bg-[#0d1117] rounded-t-3xl border border-white/10 p-6 translate-y-full transition-transform duration-400 ease-out">
+    
+
+
+    <div class="grid grid-cols-2 gap-3">
+      <button class="mobile-nav-btn glass px-4 py-4 rounded-2xl text-sm font-semibold flex items-center gap-2" data-tab="0">
+        <span class="text-lg">📊</span> Overview
+      </button>
+      <button class="mobile-nav-btn glass px-4 py-4 rounded-2xl text-sm font-semibold flex items-center gap-2" data-tab="1">
+        <span class="text-lg">📦</span> Products
+      </button>
+      <button class="mobile-nav-btn glass px-4 py-4 rounded-2xl text-sm font-semibold flex items-center gap-2" data-tab="2">
+        <span class="text-lg">📋</span> Orders
+      </button>
+      <button class="mobile-nav-btn glass px-4 py-4 rounded-2xl text-sm font-semibold flex items-center gap-2" data-tab="3">
+        <span class="text-lg">🚚</span> Drivers
+      </button>
+      <button class="mobile-nav-btn glass px-4 py-4 rounded-2xl text-sm font-semibold flex items-center gap-2" data-tab="4">
+        <span class="text-lg">📈</span> Analytics
+      </button>
+      <button class="mobile-nav-btn glass px-4 py-4 rounded-2xl text-sm font-semibold flex items-center gap-2" data-tab="5">
+        <span class="text-lg">⚙️</span> Settings
+      </button>
+      <button class="mobile-nav-btn glass px-4 py-4 rounded-2xl text-sm font-semibold flex items-center gap-2" data-tab="6">
+    <span class="text-lg">💎</span> Vault
+     </button>
+    </div>
+
+    <a href="/explore.html" class="mt-4 w-full py-3 rounded-xl bg-white text-black font-semibold text-sm flex items-center justify-center gap-2">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      Explore Marketplace
+    </a>
+
+  </div>
+</div>
+
+<!-- =========================
+     MAIN CONTENT
+========================= -->
+<main class="max-w-7xl mx-auto px-4 py-6 relative">
+
+  <!-- LOADER -->
+  <div id="loader" class="absolute inset-0 flex items-center justify-center bg-[#030406]/60 backdrop-blur-sm z-40 rounded-2xl opacity-0 pointer-events-none transition-opacity duration-200">
+    <div class="w-10 h-10 border-2 border-indigo-500/20 border-t-indigo-400 rounded-full animate-spin"></div>
+  </div>
+
+  <div id="tabs-wrapper" class="relative">
+
+    <!-- ==================== TAB 0: OVERVIEW ==================== -->
+    <div class="tab active">
+      
+      <!-- STAT CARDS -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="stat-card glass p-5 rounded-2xl">
+          <p class="text-xs text-white/40">Total Products</p>
+          <h2 class="text-3xl font-black mt-2" id="ov-products">0</h2>
+        </div>
+        <div class="stat-card glass p-5 rounded-2xl">
+          <p class="text-xs text-white/40">Total Orders</p>
+          <h2 class="text-3xl font-black mt-2" id="ov-orders">0</h2>
+        </div>
+        <div class="stat-card glass p-5 rounded-2xl">
+          <p class="text-xs text-white/40">Pending Orders</p>
+          <h2 class="text-3xl font-black mt-2" id="ov-pending">0</h2>
+        </div>
+        <div class="stat-card glass p-5 rounded-2xl">
+          <p class="text-xs text-white/40">Revenue</p>
+          <h2 class="text-3xl font-black mt-2" id="ov-revenue">KSh 0</h2>
+        </div>
+      </div>
+
+      <!-- QUICK ACTIONS -->
+      <div class="flex flex-wrap gap-3 mb-6">
+        <button class="quick-action px-5 py-2.5 rounded-xl bg-indigo-500/20 text-indigo-300 text-sm font-semibold hover:bg-indigo-500/30 transition" data-tab="1">
+          ＋ Add Product
+        </button>
+        <button class="quick-action px-5 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-300 text-sm font-semibold hover:bg-emerald-500/30 transition" data-tab="2">
+          📋 View Orders
+        </button>
+        <button class="quick-action px-5 py-2.5 rounded-xl bg-amber-500/20 text-amber-300 text-sm font-semibold hover:bg-amber-500/30 transition" data-tab="3">
+          🚚 Manage Drivers
+        </button>
+      </div>
+
+      <!-- RECENT ORDERS -->
+      <div class="glass rounded-2xl p-5">
+        <h3 class="text-sm font-semibold text-white mb-4">📋 Recent Orders</h3>
+        <div id="ov-recent-orders" class="space-y-3">
+          <p class="text-sm text-white/30 text-center py-6">Loading recent orders...</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== TAB 1: PRODUCTS ==================== -->
+    <div class="tab">
+      <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <h2 class="text-lg font-bold">Your Products</h2>
+        <button id="add-product-btn" class="px-5 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 transition flex items-center gap-2">
+          <span>＋</span> Add Product
+        </button>
+      </div>
+
+      <!-- PRODUCT GRID -->
+      <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 justify-items-center">
+        <p class="col-span-full text-sm text-white/30 text-center py-12">Loading products...</p>
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div id="products-empty" class="hidden text-center py-16 text-white/25">
+        <p class="text-4xl mb-3">📦</p>
+        <p class="text-sm">No products yet. Add your first product!</p>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 2: ORDERS ==================== -->
+    <div class="tab">
+      <!-- FILTERS -->
+      <div class="flex flex-wrap gap-2 mb-5">
+        <button class="order-filter-btn text-xs px-4 py-1.5 rounded-lg border border-white/15 bg-white/8 text-white" data-filter="all">All</button>
+        <button class="order-filter-btn text-xs px-4 py-1.5 rounded-lg border border-white/8 text-white/40" data-filter="pending">Pending</button>
+        <button class="order-filter-btn text-xs px-4 py-1.5 rounded-lg border border-white/8 text-white/40" data-filter="active">Active</button>
+        <button class="order-filter-btn text-xs px-4 py-1.5 rounded-lg border border-white/8 text-white/40" data-filter="completed">Completed</button>
+      </div>
+
+      <!-- ORDER LIST -->
+      <div id="orders-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 justify-items-center">
+        <p class="col-span-full text-sm text-white/30 text-center py-12">Loading orders...</p>
+      </div>
+
+      <!-- EMPTY -->
+      <div id="orders-empty" class="hidden text-center py-16 text-white/25">
+        <p class="text-4xl mb-3">📋</p>
+        <p class="text-sm">No orders yet.</p>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 3: DRIVERS ==================== -->
+    <div class="tab">
+      <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <h2 class="text-lg font-bold">Delivery Team</h2>
+        <button id="add-driver-btn" class="px-5 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 transition flex items-center gap-2">
+          <span>＋</span> Add Driver
+        </button>
+      </div>
+
+      <div id="drivers-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 justify-items-center">
+        <p class="col-span-full text-sm text-white/30 text-center py-12">Loading drivers...</p>
+      </div>
+
+      <div id="drivers-empty" class="hidden text-center py-16 text-white/25">
+        <p class="text-4xl mb-3">🚚</p>
+        <p class="text-sm">No drivers added yet. Build your delivery team!</p>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 4: ANALYTICS ==================== -->
+    <div class="tab">
+      <!-- PERIOD TOGGLES -->
+      <div class="flex items-center justify-between flex-wrap gap-3 mb-6">
+        <div class="flex gap-2">
+          <button class="period-btn text-xs px-4 py-1.5 rounded-lg border border-white/15 bg-white/8 text-white" data-period="daily">Daily</button>
+          <button class="period-btn text-xs px-4 py-1.5 rounded-lg border border-white/8 text-white/40" data-period="monthly">Monthly</button>
+          <button class="period-btn text-xs px-4 py-1.5 rounded-lg border border-white/8 text-white/40" data-period="yearly">Yearly</button>
+        </div>
+        <div class="flex items-center gap-2">
+          <input type="date" id="analytics-date" class="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white outline-none" />
+          <button id="print-report-btn" class="px-4 py-1.5 rounded-lg bg-white/10 text-white text-xs font-semibold hover:bg-white/15 transition flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 12H4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Print
+          </button>
+        </div>
+      </div>
+
+      <!-- STAT CARDS -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="glass p-4 rounded-2xl">
+          <p class="text-xs text-white/40">Revenue</p>
+          <h2 class="text-2xl font-black mt-1" id="an-revenue">KSh 0</h2>
+        </div>
+        <div class="glass p-4 rounded-2xl">
+          <p class="text-xs text-white/40">Orders</p>
+          <h2 class="text-2xl font-black mt-1" id="an-orders">0</h2>
+        </div>
+        <div class="glass p-4 rounded-2xl">
+          <p class="text-xs text-white/40">Avg Order Value</p>
+          <h2 class="text-2xl font-black mt-1" id="an-avg">KSh 0</h2>
+        </div>
+        <div class="glass p-4 rounded-2xl">
+          <p class="text-xs text-white/40">Top Day</p>
+          <h2 class="text-2xl font-black mt-1" id="an-top-day">—</h2>
+        </div>
+      </div>
+
+      <!-- CHARTS -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+        <div class="glass p-5 rounded-2xl">
+          <h3 class="text-sm font-semibold text-white mb-3">📈 Revenue Trend</h3>
+          <canvas id="chart-revenue" height="200"></canvas>
+        </div>
+        <div class="glass p-5 rounded-2xl">
+          <h3 class="text-sm font-semibold text-white mb-3">📊 Orders by Status</h3>
+          <canvas id="chart-status" height="200"></canvas>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div class="glass p-5 rounded-2xl">
+          <h3 class="text-sm font-semibold text-white mb-3">🏆 Top Products</h3>
+          <canvas id="chart-products" height="200"></canvas>
+        </div>
+        <div class="glass p-5 rounded-2xl">
+          <h3 class="text-sm font-semibold text-white mb-3">🚚 Driver Performance</h3>
+          <canvas id="chart-drivers" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 5: SETTINGS ==================== -->
+    <div class="tab">
+      <div class="max-w-3xl mx-auto space-y-6">
+        <h2 class="text-xl font-bold">Store Settings</h2>
+
+        <!-- PROFILE -->
+        <div class="glass p-5 rounded-2xl space-y-4">
+          <h3 class="text-sm font-semibold text-white">Store Profile</h3>
+          <div class="grid md:grid-cols-2 gap-4">
+            <input id="set-storeName" class="setting-input bg-white/5 p-3 rounded-xl text-sm outline-none text-white" placeholder="Store Name" />
+            <input id="set-category" class="setting-input bg-white/5 p-3 rounded-xl text-sm outline-none text-white" placeholder="Category" />
+            <input id="set-email" class="setting-input bg-white/5 p-3 rounded-xl text-sm outline-none text-white" placeholder="Email" type="email" />
+            <input id="set-phone" class="setting-input bg-white/5 p-3 rounded-xl text-sm outline-none text-white" placeholder="Phone Number" />
+            <input id="set-currency" class="setting-input bg-white/5 p-3 rounded-xl text-sm outline-none text-white" placeholder="Currency (e.g. KSh)" />
+            <input id="set-payout" class="setting-input bg-white/5 p-3 rounded-xl text-sm outline-none text-white" placeholder="Payout M-Pesa Number" />
+            <textarea id="set-description" class="setting-input bg-white/5 p-3 rounded-xl text-sm outline-none text-white md:col-span-2" placeholder="Store Description" rows="3"></textarea>
+          </div>
+        </div>
+
+        <!-- PHYSICAL STORE -->
+        <div class="glass p-5 rounded-2xl space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-white">Physical Store</h3>
+            <div id="physical-store-toggle" class="w-12 h-6 flex items-center bg-white/10 rounded-full p-1 cursor-pointer transition">
+              <div id="physical-store-knob" class="w-4 h-4 bg-slate-400 rounded-full transition transform"></div>
+            </div>
+          </div>
+          <div id="physical-address-fields" class="hidden grid md:grid-cols-2 gap-4">
+            <input id="set-street" class="setting-input bg-white/5 p-3 rounded-xl text-sm outline-none text-white" placeholder="Street" />
+            <input id="set-city" class="setting-input bg-white/5 p-3 rounded-xl text-sm outline-none text-white" placeholder="City" />
+            <input id="set-state" class="setting-input bg-white/5 p-3 rounded-xl text-sm outline-none text-white" placeholder="State / Region" />
+            <input id="set-country" class="setting-input bg-white/5 p-3 rounded-xl text-sm outline-none text-white" placeholder="Country" />
+            <input id="set-building" class="setting-input bg-white/5 p-3 rounded-xl text-sm outline-none text-white" placeholder="Building / Apartment" />
+            <input id="set-postal" class="setting-input bg-white/5 p-3 rounded-xl text-sm outline-none text-white" placeholder="Postal Code" />
+          </div>
+        </div>
+
+        <!-- DELIVERY SETTINGS -->
+        <div class="glass p-5 rounded-2xl space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-semibold text-white">Delivery</h3>
+              <p class="text-xs text-white/40">Enable delivery for your store</p>
+            </div>
+            <div id="delivery-toggle" class="w-12 h-6 flex items-center bg-white/10 rounded-full p-1 cursor-pointer transition">
+              <div id="delivery-knob" class="w-4 h-4 bg-slate-400 rounded-full transition transform"></div>
+            </div>
+          </div>
+          <div id="delivery-options" class="hidden space-y-4">
+            <div class="flex gap-3">
+              <button class="delivery-mode-btn text-xs px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-white/60" data-mode="static">Flat Fee</button>
+              <button class="delivery-mode-btn text-xs px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-white/60" data-mode="dynamic">Dynamic</button>
+            </div>
+            <input id="set-delivery-fee" class="setting-input bg-white/5 p-3 rounded-xl text-sm outline-none text-white" placeholder="Delivery Fee (KSh)" type="number" />
+          </div>
+        </div>
+
+        <!-- STORE VISIBILITY -->
+        <div class="glass p-5 rounded-2xl flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-semibold text-white">Store Visibility</h3>
+            <p class="text-xs text-white/40" id="visibility-label">Your store is currently active</p>
+          </div>
+          <div id="visibility-toggle" class="w-12 h-6 flex items-center bg-indigo-500/30 rounded-full p-1 cursor-pointer transition">
+            <div id="visibility-knob" class="w-4 h-4 bg-indigo-400 rounded-full transition transform translate-x-6"></div>
+          </div>
+        </div>
+
+        <div class="flex justify-end">
+          <button id="save-settings-btn" class="px-6 py-3 rounded-xl bg-indigo-500 text-white font-semibold text-sm hover:bg-indigo-600 transition">
+            Save All Settings
+          </button>
+        </div>
+      </div>
+    </div>
+
+<!-- ==================== TAB 7: VAULT (PAYMENTS) ====================
+     Static markup — JS (vendor-vault.js) only fills in data / toggles
+     classes on these fixed ids. It should NOT build DOM structure.
+========================================================================= -->
+<div class="tab" id="vault-tab-root">
+
+  <!-- ===== BALANCE OVERVIEW ===== -->
+  <div class="glass rounded-3xl p-6 md:p-8 mb-6 relative overflow-hidden">
+    <!-- ambient accent -->
+    <div class="absolute -top-24 -right-24 w-64 h-64 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none"></div>
+
+    <div class="relative flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+      <div>
+        <p class="text-xs text-white/40 font-medium">Available Balance</p>
+        <h2 id="vault-balance" class="text-4xl md:text-5xl font-black mt-2 tracking-tight">KSh 0</h2>
+        <p class="text-xs text-white/30 mt-2">
+          <span id="vault-pending-balance">KSh 0</span> pending clearance
+        </p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3 shrink-0">
+        <button id="vault-withdraw-btn" class="px-6 py-3 rounded-xl bg-white text-black font-extrabold text-sm hover:bg-slate-100 transition active:scale-[0.98]">
+          Withdraw Funds
+        </button>
+      </div>
+    </div>
+
+    <!-- payout destination row -->
+    <div class="relative mt-6 pt-6 border-t border-white/5 flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center text-sm">📲</div>
+        <div>
+          <p class="text-xs text-white/40">Payout Destination</p>
+          <p class="text-sm font-semibold text-white">
+            <span id="vault-payout-type" class="text-white/50">Not set</span>
+            <span id="vault-payout-number"></span>
+          </p>
+        </div>
+      </div>
+      <button id="vault-edit-payout-btn" class="text-xs px-4 py-2 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 hover:text-white transition font-medium">
+        Change
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== PLAN CARDS ===== -->
+  <div class="mb-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-sm font-semibold text-white">Your Plan</h3>
+      <p class="text-xs text-white/30">Upgrade for faster payouts &amp; lower fees</p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+      <!-- FREE -->
+      <div class="plan-card glass rounded-2xl p-5 relative border border-white/5" data-plan="free">
+        <span class="plan-current-badge hidden absolute -top-2.5 left-5 text-[10px] font-bold tracking-widest uppercase bg-indigo-500 text-white px-3 py-1 rounded-full">Current</span>
+        <p class="text-sm font-bold text-white">Free</p>
+        <p class="text-xs text-white/40 mt-1">Weekly batch payout</p>
+        <div class="mt-4 space-y-2 text-xs text-white/50">
+          <p>Commission <span class="text-white/80 font-semibold">8–10%</span></p>
+          <p>Instant min. <span class="text-white/80 font-semibold">KSh 5,000</span></p>
+          <p>Safaricom fee <span class="text-white/80 font-semibold">You pay full + margin</span></p>
+        </div>
+        <button class="plan-select-btn w-full mt-5 py-2.5 rounded-xl text-xs font-semibold bg-white/5 text-white/50 hover:bg-white/10 transition" data-plan="free">
+          Select
+        </button>
+      </div>
+
+      <!-- MEDIUM -->
+      <div class="plan-card glass rounded-2xl p-5 relative border border-white/5" data-plan="medium">
+        <span class="plan-current-badge hidden absolute -top-2.5 left-5 text-[10px] font-bold tracking-widest uppercase bg-indigo-500 text-white px-3 py-1 rounded-full">Current</span>
+        <p class="text-sm font-bold text-white">Medium</p>
+        <p class="text-xs text-white/40 mt-1">Payout every 2–3 days</p>
+        <div class="mt-4 space-y-2 text-xs text-white/50">
+          <p>Commission <span class="text-white/80 font-semibold">5–6%</span></p>
+          <p>Instant min. <span class="text-white/80 font-semibold">KSh 3,000</span></p>
+          <p>Safaricom fee <span class="text-white/80 font-semibold">~70% you / 30% us</span></p>
+        </div>
+        <button class="plan-select-btn w-full mt-5 py-2.5 rounded-xl text-xs font-semibold bg-white/5 text-white/50 hover:bg-white/10 transition" data-plan="medium">
+          Select
+        </button>
+      </div>
+
+      <!-- PREMIUM -->
+      <div class="plan-card glass rounded-2xl p-5 relative border border-white/5" data-plan="premium">
+        <span class="plan-current-badge hidden absolute -top-2.5 left-5 text-[10px] font-bold tracking-widest uppercase bg-indigo-500 text-white px-3 py-1 rounded-full">Current</span>
+        <p class="text-sm font-bold text-white">Premium</p>
+        <p class="text-xs text-white/40 mt-1">Daily payout</p>
+        <div class="mt-4 space-y-2 text-xs text-white/50">
+          <p>Commission <span class="text-white/80 font-semibold">3–4%</span></p>
+          <p>Instant min. <span class="text-white/80 font-semibold">KSh 1,500</span></p>
+          <p>Safaricom fee <span class="text-white/80 font-semibold">~40% you / 60% us</span></p>
+        </div>
+        <button class="plan-select-btn w-full mt-5 py-2.5 rounded-xl text-xs font-semibold bg-white/5 text-white/50 hover:bg-white/10 transition" data-plan="premium">
+          Select
+        </button>
+      </div>
+
+      <!-- ULTIMATE -->
+      <div class="plan-card glass rounded-2xl p-5 relative border border-indigo-500/20" data-plan="ultimate">
+        <span class="plan-current-badge hidden absolute -top-2.5 left-5 text-[10px] font-bold tracking-widest uppercase bg-indigo-500 text-white px-3 py-1 rounded-full">Current</span>
+        <p class="text-sm font-bold text-white">Ultimate</p>
+        <p class="text-xs text-white/40 mt-1">Instant, on-demand</p>
+        <div class="mt-4 space-y-2 text-xs text-white/50">
+          <p>Commission <span class="text-white/80 font-semibold">1.5–2%</span></p>
+          <p>Instant min. <span class="text-white/80 font-semibold">KSh 500</span></p>
+          <p>Safaricom fee <span class="text-white/80 font-semibold">Flat KSh 10–20</span></p>
+        </div>
+        <button class="plan-select-btn w-full mt-5 py-2.5 rounded-xl text-xs font-semibold bg-indigo-500 text-white hover:bg-indigo-600 transition" data-plan="ultimate">
+          Select
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== RECENT WITHDRAWALS ===== -->
+  <div class="glass rounded-2xl p-5">
+    <h3 class="text-sm font-semibold text-white mb-4">💸 Recent Withdrawals</h3>
+    <div id="vault-withdrawals-list" class="space-y-3">
+      <p class="text-sm text-white/30 text-center py-6">Loading withdrawals...</p>
+    </div>
+    <div id="vault-withdrawals-empty" class="hidden text-center py-12 text-white/25">
+      <p class="text-4xl mb-3">💸</p>
+      <p class="text-sm">No withdrawals yet.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- ====================================================================
+     WITHDRAW MODAL — bottom sheet on mobile, centered modal on desktop
+     Same overlay/panel pair as product-modal / mobile-nav-panel patterns
+========================================================================= -->
+<div id="withdraw-modal-overlay" class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-md hidden opacity-0 transition-opacity duration-300 flex items-end sm:items-center justify-center">
+  <div id="withdraw-modal"
+    class="w-full sm:max-w-md bg-[#0f1115] border border-white/5 sm:rounded-[2rem] rounded-t-3xl p-6 md:p-8 translate-y-full sm:translate-y-0 sm:scale-95 transition-all duration-300 max-h-[88vh] overflow-y-auto shadow-2xl">
+
+    <!-- HEADER -->
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-extrabold text-white tracking-tight">Withdraw Funds</h2>
+        <p class="text-slate-500 text-xs mt-1 font-medium">Sent instantly to your M-Pesa number.</p>
+      </div>
+      <button class="withdraw-modal-close-btn w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition text-white/60 hover:text-white">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- AMOUNT -->
+    <div class="space-y-2 mb-2">
+      <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Amount</label>
+      <div class="relative">
+        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 text-sm font-semibold">KSh</span>
+        <input type="number" id="withdraw-amount" class="w-full pl-12 pr-4 bg-white/[0.03] border border-white/10 rounded-xl text-white text-lg font-bold outline-none focus:border-indigo-500/50 h-14" placeholder="0" />
+      </div>
+      <p class="text-xs text-white/30">Available: <span id="withdraw-available-balance">KSh 0</span></p>
+    </div>
+
+    <!-- FEE BREAKDOWN PREVIEW -->
+    <div id="withdraw-fee-preview" class="hidden mt-4 rounded-xl bg-white/[0.03] border border-white/5 p-4 space-y-2 text-xs">
+      <div class="flex justify-between text-white/50">
+        <span>Gmarketfy fee (5%)</span>
+        <span id="fee-gmarketfy" class="text-white/80 font-semibold">KSh 0</span>
+      </div>
+      <div class="flex justify-between text-white/50">
+        <span>Safaricom fee (your share)</span>
+        <span id="fee-safaricom" class="text-white/80 font-semibold">KSh 0</span>
+      </div>
+      <div class="flex justify-between pt-2 border-t border-white/5">
+        <span class="text-white/70 font-semibold">You'll receive</span>
+        <span id="fee-total-receive" class="text-emerald-400 font-bold">KSh 0</span>
+      </div>
+    </div>
+
+    <!-- BELOW-MINIMUM NUDGE -->
+    <div id="withdraw-below-min-notice" class="hidden mt-4 rounded-xl bg-amber-500/10 border border-amber-500/20 p-4 text-xs text-amber-300">
+      You're below the instant withdrawal minimum for your plan. Your funds will go out with your next scheduled payout instead.
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="flex gap-3 pt-6 mt-4 border-t border-white/5">
+      <button id="withdraw-confirm-btn" class="flex-1 h-12 bg-white hover:bg-slate-100 text-black font-extrabold rounded-xl text-sm transition-all shadow-xl active:scale-[0.98]" disabled>
+        Confirm Withdrawal
+      </button>
+      <button class="withdraw-modal-close-btn px-6 h-12 rounded-xl bg-white/5 text-white/60 text-sm font-semibold hover:bg-white/10 transition">
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================================
+     PAYOUT DESTINATION MODAL — bottom sheet on mobile, modal on desktop
+     Two-step: 1) enter till/paybill  2) re-verify with password before save
+========================================================================= -->
+<div id="payout-modal-overlay" class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-md hidden opacity-0 transition-opacity duration-300 flex items-end sm:items-center justify-center">
+  <div id="payout-modal"
+    class="w-full sm:max-w-md bg-[#0f1115] border border-white/5 sm:rounded-[2rem] rounded-t-3xl p-6 md:p-8 translate-y-full sm:translate-y-0 sm:scale-95 transition-all duration-300 max-h-[88vh] overflow-y-auto shadow-2xl">
+
+    <!-- HEADER -->
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-extrabold text-white tracking-tight">Payout Destination</h2>
+        <p class="text-slate-500 text-xs mt-1 font-medium">Where your withdrawals are sent.</p>
+      </div>
+      <button class="payout-modal-close-btn w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition text-white/60 hover:text-white">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- ===== STEP 1: DESTINATION DETAILS ===== -->
+    <div id="payout-step-details">
+
+      <!-- TYPE TOGGLE -->
+      <div class="space-y-2 mb-5">
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Destination Type</label>
+        <div class="flex gap-3">
+          <button type="button" class="payout-type-btn flex-1 py-3 rounded-xl border border-white/10 bg-white/[0.02] text-sm font-semibold text-white/50 hover:border-indigo-500/30 hover:text-white/80 transition-all duration-200" data-type="till">
+            🏪 Till Number
+          </button>
+          <button type="button" class="payout-type-btn flex-1 py-3 rounded-xl border border-white/10 bg-white/[0.02] text-sm font-semibold text-white/50 hover:border-indigo-500/30 hover:text-white/80 transition-all duration-200" data-type="paybill">
+            🏦 Paybill
+          </button>
+        </div>
+        <input type="hidden" id="payout-type" value="" />
+      </div>
+
+      <!-- NUMBER -->
+      <div class="space-y-2 mb-5">
+        <label id="payout-number-label" class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Till Number</label>
+        <input type="text" id="payout-number-input" class="w-full px-4 bg-white/[0.03] border border-white/10 rounded-xl text-white text-sm outline-none focus:border-indigo-500/50 h-12" placeholder="e.g. 123456" />
+      </div>
+
+      <!-- ACCOUNT NUMBER (paybill only) -->
+      <div id="payout-account-field" class="hidden space-y-2 mb-5">
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Account Number</label>
+        <input type="text" id="payout-account-input" class="w-full px-4 bg-white/[0.03] border border-white/10 rounded-xl text-white text-sm outline-none focus:border-indigo-500/50 h-12" placeholder="e.g. Store name or account ref" />
+      </div>
+
+      <button id="payout-continue-btn" class="w-full h-12 bg-white/10 text-white/40 font-extrabold rounded-xl text-sm transition-all mt-2" disabled>
+        Continue
+      </button>
+    </div>
+
+    <!-- ===== STEP 2: RE-VERIFY BEFORE SAVING ===== -->
+    <div id="payout-step-verify" class="hidden">
+      <div class="rounded-xl bg-amber-500/10 border border-amber-500/20 p-4 text-xs text-amber-300 mb-5">
+        For your security, confirm your password to update where your money is sent.
+      </div>
+
+      <div class="space-y-2 mb-2">
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Password</label>
+        <input type="password" id="payout-verify-password" class="w-full px-4 bg-white/[0.03] border border-white/10 rounded-xl text-white text-sm outline-none focus:border-indigo-500/50 h-12" placeholder="••••••••" />
+      </div>
+      <p id="payout-verify-error" class="hidden text-xs text-red-400 mb-3">Incorrect password. Try again.</p>
+
+      <div class="flex gap-3 pt-4 mt-2 border-t border-white/5">
+        <button id="payout-save-btn" class="flex-1 h-12 bg-white hover:bg-slate-100 text-black font-extrabold rounded-xl text-sm transition-all shadow-xl active:scale-[0.98]" disabled>
+          Confirm &amp; Save
+        </button>
+        <button id="payout-back-btn" class="px-6 h-12 rounded-xl bg-white/5 text-white/60 text-sm font-semibold hover:bg-white/10 transition">
+          Back
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+  </div>
+</main>
+
+<!-- =========================
+     MODALS
+========================= -->
+
+<!-- PRODUCT MODAL -->
+<!-- PRODUCT MODAL — REDESIGNED -->
+<div id="product-modal-overlay" class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-md hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4">
+  <div id="product-modal" class="w-full max-w-2xl bg-[#0f1115] border border-white/5 rounded-[2rem] p-6 md:p-8 scale-95 transition-transform duration-300 max-h-[90vh] overflow-y-auto shadow-2xl">
+    
+    <!-- HEADER -->
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <h2 id="product-modal-title" class="text-2xl font-extrabold text-white tracking-tight">Add Product</h2>
+        <p class="text-slate-500 text-xs mt-1 font-medium">Fill in the details to list your product.</p>
+      </div>
+      <button class="modal-close-btn w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition text-white/60 hover:text-white">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <form id="product-form" class="space-y-8">
+      <input type="hidden" id="pf-product-id" />
+      
+      <!-- IMAGE UPLOAD BANNER -->
+      <div class="space-y-3">
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Product Image</label>
+        <div id="pf-image-preview-area" class="preview-banner flex flex-col items-center justify-center overflow-hidden cursor-pointer" onclick="document.getElementById('pf-image').click()">
+          <div id="pf-image-placeholder" class="flex flex-col items-center gap-2 group">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-600 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span class="text-[10px] font-bold text-slate-600 tracking-widest uppercase">Upload Product Image</span>
+            <span class="text-[9px] text-slate-700">Click to browse • JPEG/PNG • Max 2MB</span>
+          </div>
+          <img id="pf-image-preview" class="absolute inset-0 w-full h-full object-cover rounded-3xl hidden" />
+          <div id="pf-image-overlay" class="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity rounded-3xl flex items-center justify-center hidden">
+            <span class="text-xs font-semibold text-white bg-black/50 px-4 py-2 rounded-full">Change Image</span>
+          </div>
+        </div>
+        <input type="file" id="pf-image" accept="image/*" class="hidden" />
+        <button type="button" id="pf-remove-image" class="hidden text-xs text-red-400 hover:text-red-300 transition font-medium">✕ Remove image</button>
+      </div>
+
+      <!-- PRODUCT NAME + PRICE ROW -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-2">
+          <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Product Name</label>
+          <input type="text" id="pf-name" class="input-compact w-full px-4 bg-white/[0.03] border border-white/10 rounded-xl text-white text-sm outline-none focus:border-indigo-500/50 h-12" placeholder="e.g. Wireless Headphones" required />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-2">
+            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Price</label>
+            <input type="text" id="pf-price" class="input-compact w-full px-4 bg-white/[0.03] border border-white/10 rounded-xl text-white text-sm outline-none focus:border-indigo-500/50 h-12" placeholder="0.00" required />
+          </div>
+          <div class="space-y-2">
+            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Currency</label>
+            <div class="custom-select-wrapper" id="pf-currency-wrapper">
+              <div class="input-compact w-full px-4 bg-white/[0.03] border border-white/10 rounded-xl flex items-center text-sm text-white h-12" id="pf-currency-val">KSh</div>
+              <div class="options-menu" id="pf-currency-list">
+                <div class="option-item cur-opt">KSh</div>
+                <div class="option-item cur-opt">USD</div>
+                <div class="option-item cur-opt">EUR</div>
+                <div class="option-item cur-opt">GBP</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STOCK + CATEGORY ROW -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-2">
+          <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Stock Quantity</label>
+          <input type="number" id="pf-stock" class="input-compact w-full px-4 bg-white/[0.03] border border-white/10 rounded-xl text-white text-sm outline-none focus:border-indigo-500/50 h-12" placeholder="e.g. 50" required />
+        </div>
+        <div class="space-y-2">
+          <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Category</label>
+          <div class="custom-select-wrapper" id="pf-category-wrapper">
+            <div class="input-compact w-full px-4 bg-white/[0.03] border border-white/10 rounded-xl flex items-center text-sm text-white h-12" id="pf-category-val">Digital Art</div>
+            <div class="options-menu max-h-48 overflow-y-auto z-50" id="pf-category-list">
+              <div class="option-item cat_opt">Digital Art</div>
+              <div class="option-item cat_opt">Electronics</div>
+              <div class="option-item cat_opt">Apparel</div>
+              <div class="option-item cat_opt">Beauty & Cosmetics</div>
+              <div class="option-item cat_opt">Home & Living</div>
+              <div class="option-item cat_opt">Food & Beverages</div>
+              <div class="option-item cat_opt">Health & Wellness</div>
+              <div class="option-item cat_opt">Sports & Fitness</div>
+              <div class="option-item cat_opt">Books & Education</div>
+              <div class="option-item cat_opt">Software & SaaS</div>
+              <div class="option-item cat_opt">Gaming</div>
+              <div class="option-item cat_opt">Furniture</div>
+              <div class="option-item cat_opt">Jewelry & Accessories</div>
+              <div class="option-item cat_opt">Automotive</div>
+              <div class="option-item cat_opt">Fashion & Apparel</div>
+              <div class="option-item cat_opt">Photography & Video</div>
+              <div class="option-item cat_opt">Agriculture & Farming</div>
+              <div class="option-item cat_opt">Web Development</div>
+              <div class="option-item cat_opt">Mobile Apps</div>
+              <div class="option-item cat_opt">Other</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DESCRIPTION -->
+      <div class="space-y-2">
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Description</label>
+        <textarea id="pf-description" class="w-full px-4 py-3 bg-white/[0.03] border border-white/10 rounded-xl text-white text-sm outline-none focus:border-indigo-500/50 resize-none h-24" placeholder="Describe your product..."></textarea>
+      </div>
+
+      <!-- PAYMENT TIMING -->
+      <div class="space-y-3 pt-2 border-t border-white/5">
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Payment Timing</label>
+        <div class="flex gap-3">
+          <button type="button" class="payment-timing-btn flex-1 py-3 rounded-xl border border-white/10 bg-white/[0.02] text-sm font-semibold text-white/50 hover:border-indigo-500/30 hover:text-white/80 transition-all duration-200" data-timing="before">
+            💳 Pay Before Delivery
+          </button>
+          <button type="button" class="payment-timing-btn flex-1 py-3 rounded-xl border border-white/10 bg-white/[0.02] text-sm font-semibold text-white/50 hover:border-indigo-500/30 hover:text-white/80 transition-all duration-200" data-timing="after">
+            📦 Pay After Delivery
+          </button>
+        </div>
+        <input type="hidden" id="pf-paymentTiming" value="before" />
+      </div>
+
+      <!-- ACTIONS -->
+      <div class="flex gap-3 pt-4 border-t border-white/5">
+        <button type="submit" id="pf-submit-btn" class="flex-1 h-12 bg-white hover:bg-slate-100 text-black font-extrabold rounded-xl text-sm transition-all shadow-xl active:scale-[0.98]">
+          Add Product
+        </button>
+        <button type="button" class="modal-close-btn px-6 h-12 rounded-xl bg-white/5 text-white/60 text-sm font-semibold hover:bg-white/10 transition">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- DRIVER DETAIL SHEET (standalone) -->
+<div id="driver-detail-overlay"
+  class="fixed inset-0 z-[90] hidden opacity-0 transition-opacity duration-300 bg-black/70 backdrop-blur-xl flex items-center justify-center p-4">
+
+  <div data-detail-panel
+    class="w-full max-w-md bg-[#0c0e12] border border-white/10 rounded-[2rem] overflow-hidden shadow-[0_30px_120px_rgba(0,0,0,0.7)] scale-95 translate-y-6 transition-all duration-300 max-h-[90vh] overflow-y-auto">
+    <!-- content injected/updated by JS -->
+  </div>
+</div>
+
+
+<!-- ASSIGN DRIVER MODAL -->
+<div id="assign-driver-overlay" class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-md hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4">
+  <div id="assign-driver-modal" class="w-full max-w-sm bg-[#0d1117] border border-white/10 rounded-2xl p-6 scale-95 transition-transform duration-300">
+    <h2 class="text-lg font-bold mb-1">Assign Driver</h2>
+    <p class="text-xs text-white/40 mb-4">Select a driver for this order</p>
+    <div id="assign-driver-list" class="space-y-2 max-h-60 overflow-y-auto mb-4"></div>
+    <input type="hidden" id="assign-order-id" />
+    <div class="flex gap-3">
+      <button id="confirm-assign-btn" class="flex-1 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 transition" disabled>Assign</button>
+      <button class="assign-close-btn px-4 py-2.5 rounded-xl bg-white/5 text-white/60 text-sm hover:bg-white/10 transition">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRINT REPORT CONTAINER (hidden, shown only for print) -->
+<div id="print-container" class="hidden">
+  <div id="print-content"></div>
+</div>
+
+<!-- LOADING DOTS -->
+<div id="loading-dots-bar" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 px-5 py-3 rounded-2xl bg-black/70 backdrop-blur-md border border-white/10 shadow-xl">
+  <div class="flex items-center gap-1">
+    <span class="dot w-2 h-2 rounded-full bg-indigo-400"></span>
+    <span class="dot w-2 h-2 rounded-full bg-indigo-400"></span>
+    <span class="dot w-2 h-2 rounded-full bg-indigo-400"></span>
+  </div>
+  <p id="loading-dots-message" class="text-xs text-white/70"></p>
+</div>
+
+<!-- SCRIPTS -->
+<script type="module" src="./shared.js"></script>
+<script type="module" src="./vendor-dashboard.js"></script>
+<script type="module" src="./vendor-products.js"></script>
+<script type="module" src="./dispatch.js"></script>
+<script type="module" src="./vendor-orders.js"></script>   <!-- NEW -->
+<script type="module" src="./vendor-drivers.js"></script>
+<script type="module" src="./vendor-analytics.js"></script>
+<script type="module" src="./vendor-settings.js"></script>
+<script type="module" src="./vendor-vault.js"></script>
+</body>
+</html>

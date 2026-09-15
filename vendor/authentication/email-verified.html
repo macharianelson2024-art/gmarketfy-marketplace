@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email Verified | Gmarketfy</title>
+<!-- ======================================
+   GMARKETF Y / GRESSOR INTERNAL PAGE META
+   DO NOT INDEX (APP / DASHBOARD PAGES)
+====================================== -->
+
+<!-- SEO CONTROL -->
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+<meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+<meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+
+<!-- BASIC PAGE SETUP -->
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+<!-- BRAND IDENTITY -->
+<meta name="application-name" content="Gmarketfy" />
+<meta name="author" content="Gressor" />
+<meta name="creator" content="Gressor" />
+<meta name="publisher" content="Gressor" />
+<meta name="generator" content="Gmarketfy Multi-Vendor Platform" />
+
+<!-- PAGE CLASSIFICATION -->
+<meta name="description" content="Gmarketfy internal platform interface under Gressor ecosystem. Secure application layer for vendors, customers, and system operations." />
+<meta name="keywords" content="Gmarketfy, Gressor, marketplace, multi-vendor system, vendor dashboard, ecommerce platform, secure application" />
+<meta name="referrer" content="no-referrer" />
+
+<!-- SECURITY / CACHE CONTROL -->
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+
+<!-- UI / BROWSER BEHAVIOR -->
+<meta name="format-detection" content="telephone=no" />
+<meta name="theme-color" content="#000000" />
+
+<!-- BRAND OWNERSHIP -->
+<meta name="author" content="Nelson Macharia" />
+<meta name="creator" content="Nelson Macharia" />
+<meta name="copyright" content="© 2026 Gressor" />
+<meta name="publisher" content="Gressor" />
+
+<meta name="application-name" content="Gmarketfy by Gressor" />
+<meta name="owner" content="Nelson Macharia" />
+ <script src="https://cdn.tailwindcss.com"></script>
+
+ <!-- FAVICON SETUP -->
+<link rel="icon" href="/favicon.ico" />
+
+<!-- PNG favicons -->
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+
+<!-- Apple Touch Icon -->
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+<!-- Android / PWA style icons -->
+<link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
+
+<!-- Web App Theme Color -->
+<meta name="theme-color" content="#000000" />
+<style>
+        .glass-card { background: #0f1115; border: 1px solid rgba(255, 255, 255, 0.05); }
+
+</style>
+</head>
+
+<body class="bg-[#050608] flex items-center justify-center min-h-screen text-white">
+
+<div class="max-w-md w-full p-8 rounded-2xl text-center shadow-xl 
+            glass-card border border-slate-800/60">
+
+  <!-- Icon -->
+  <div class="text-5xl mb-4">✅</div>
+
+  <!-- Title -->
+  <h1 class="text-2xl font-bold mb-2 text-white">
+    Email Verified!
+  </h1>
+
+  <!-- Message -->
+  <p class="text-slate-400 mb-6 leading-relaxed message">
+   verifying...
+  </p>
+
+  <!-- Button -->
+  <button id="redirection-btn" 
+    class="bg-gradient-to-r from-sky-500 to-blue-600 
+           hover:from-sky-400 hover:to-blue-500
+           px-6 py-3 rounded-xl font-semibold 
+           transition-all duration-300 shadow-lg shadow-blue-500/10">
+    
+    Go to Dashboard 🚀
+  </button>
+
+</div>
+
+
+
+<script type="module">
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, updateDoc  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+
+const firebaseConfig = { 
+  apiKey: "AIzaSyAUErMIjiQgnprmqYd6wiscOa8CIAAELi8",
+  authDomain: "marketfy-82c42.firebaseapp.com",
+  projectId: "marketfy-82c42",
+  storageBucket: "marketfy-82c42.firebasestorage.app",
+  messagingSenderId: "321190245217",
+  appId: "1:321190245217:web:b9eb39db0a9a2056a30b20",
+  measurementId: "G-07W1D4H9JB"
+}
+
+const app = initializeApp(firebaseConfig);
+
+const auth = getAuth(app);
+const db = getFirestore(app);
+let messageEl = document.querySelector(".message");
+auth.onAuthStateChanged(async (user) => {
+  if (!user) {return};
+
+  await user.reload();
+
+  if (user.emailVerified) {
+    console.log("User verified ✅");
+   
+    messageEl.textContent = "Your email has been successfully verified. <br> your Vendor account is now verified.";
+    try {
+      // update Firestore vendor record
+      const userRef = doc(db, "vendors", user.uid);
+
+      await updateDoc(userRef, {
+        emailVerified: true
+      });
+
+      console.log("Firestore updated: vendor verified 🎉");
+    } catch (err) {
+      console.error("Failed to update verification status:", err);
+    }
+
+  } else {
+    messageEl.textContent = "Your email is not verified.";
+    console.log("Still not verified ❌");
+  }
+});
+
+document.getElementById("redirection-btn").addEventListener("click", ()=>{
+  goToDashboard();
+});
+
+function goToDashboard() {
+  window.location.href = "../dashboard.html";
+}
+
+</script>
+
+</body>
+</html>

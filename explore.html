@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gmarketfy explore</title>
+  <!-- ======================================
+   GMARKETF Y / GRESSOR INTERNAL PAGE META
+====================================== -->
+
+
+<!-- BASIC PAGE SETUP -->
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+<!-- BRAND IDENTITY -->
+<meta name="application-name" content="Gmarketfy" />
+<meta name="author" content="Gressor" />
+<meta name="creator" content="Gressor" />
+<meta name="publisher" content="Gressor" />
+<meta name="generator" content="Gmarketfy Multi-Vendor Platform" />
+
+<!-- PAGE CLASSIFICATION -->
+<meta name="description" content="Gmarketfy internal platform interface under Gressor ecosystem. Secure application layer for vendors, customers, and system operations." />
+<meta name="keywords" content="Gmarketfy, Gressor, marketplace, multi-vendor system, vendor dashboard, ecommerce platform, secure application" />
+<meta name="referrer" content="no-referrer" />
+
+<!-- SECURITY / CACHE CONTROL -->
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+
+<!-- UI / BROWSER BEHAVIOR -->
+<meta name="format-detection" content="telephone=no" />
+<meta name="theme-color" content="#000000" />
+
+<!-- BRAND OWNERSHIP -->
+<meta name="author" content="Nelson Macharia" />
+<meta name="creator" content="Nelson Macharia" />
+<meta name="copyright" content="© 2026 Gressor" />
+<meta name="publisher" content="Gressor" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Explore Marketplace | Gmarketfy" />
+<meta name="twitter:description" content="Browse products and stores on Gmarketfy." />
+
+<meta name="application-name" content="Gmarketfy by Gressor" />
+<meta name="owner" content="Nelson Macharia" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="tailwind.js"></script>
+  <link rel="stylesheet" href="./explore.css">
+  <link rel="stylesheet" href="./orderting-auth.css">
+  <!-- FAVICON SETUP -->
+<link rel="icon" href="/favicon.ico" />
+
+<!-- PNG favicons -->
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+
+<!-- Apple Touch Icon -->
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+<!-- Android / PWA style icons -->
+<link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
+
+<meta name="description" content="Browse products and stores on Gmarketfy. Discover verified vendors, trending products, and new marketplace listings in real time." />
+
+<meta name="keywords" content="marketplace, buy products online, vendors, ecommerce, Gmarketfy, explore products, online stores Africa" />
+
+<meta name="robots" content="index, follow" />
+<meta property="og:title" content="Explore Marketplace | Gmarketfy" />
+<meta property="og:description" content="Discover products and vendors on Gmarketfy marketplace." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://marketfy-82c42.web.app/explore.html" />
+
+
+<!-- Web App Theme Color -->
+<meta name="theme-color" content="#000000" />
+</head>
+
+<body class="bg-[#050608] text-white font-sans antialiased">
+
+<!-- =========================
+      TOGGLE 
+========================= -->
+<header class="w-full fixed top-0 z-50 glass border-b border-white/10">
+
+  <div class="max-w mx-auto px-4 sm:px-6 py-2 sm:py-4">
+
+    <div class="flex items-center justify-between gap-3">
+
+      <!-- BRAND -->
+      <div class="px-3 sm:px-4 py-1 sm:py-2 rounded-full bg-white/5 border border-white/10 shrink-0">
+        <h1 class="text-base sm:text-lg font-extrabold gradient-move tracking-wider whitespace-nowrap" id="home">
+          Gmarketfy
+        </h1>
+      </div>
+
+      <!-- TOGGLE (ONLY SHOWS INLINE ON MED+ SCREENS) -->
+      <div class="hidden sm:flex relative items-center rounded-full p-1
+                  bg-white/5 border border-white/10 gap-1
+                  w-[200px] md:w-64 min-w-[200px]">
+
+        <div id="slider"
+             class="absolute top-1 left-1 h-[calc(100%-8px)]
+                    w-[calc(50%-4px)]
+                    rounded-full bg-gradient-to-r from-indigo-500 to-pink-500
+                    transition-transform duration-300 ease-out z-0">
+        </div>
+
+        <button id="btnProducts"
+                class="relative z-10 flex-1 py-1.5 text-xs sm:text-sm font-semibold">
+          Products
+        </button>
+
+        <button id="btnStores"
+                class="relative z-10 flex-1 py-1.5 text-xs sm:text-sm font-semibold text-white/40">
+          Stores
+        </button>
+
+      </div>
+
+
+
+
+
+
+    </div>
+
+    <!-- ROW 2: MOBILE TOGGLE ONLY -->
+    <div class="flex sm:hidden justify-center mt-2">
+
+      <div class="relative flex items-center rounded-full p-1
+                  bg-white/5 border border-white/10 gap-1
+                  w-[180px]">
+
+        <div id="sliderMobile"
+             class="absolute top-1 left-1 h-[calc(100%-8px)]
+                    w-[calc(50%-4px)]
+                    rounded-full bg-gradient-to-r from-indigo-500 to-pink-500
+                    transition-transform duration-300 ease-out z-0">
+        </div>
+
+        <button id="btnProductsMobile"
+                class="relative z-10 flex-1 py-1 text-xs font-semibold">
+          Products
+        </button>
+
+        <button id="btnStoresMobile"
+                class="relative z-10 flex-1 py-1 text-xs font-semibold text-white/40">
+          Stores
+        </button>
+
+      </div>
+
+    </div>
+
+
+
+  </div>
+
+
+</header>
+
+<!-- =========================
+     SEARCH SECTION
+========================= -->
+<section id="searchSection"
+         class="w-full px-4 sm:px-6 py-3 fixed z-40">
+  <div class="max-w-xl mx-auto">
+
+    <div id="searchBar"
+         class="flex items-center gap-3 px-4 py-2.5 rounded-2xl
+                bg-[#050608] border border-white/[0.07]
+                focus-within:border-indigo-500/40
+                focus-within:shadow-[0_0_20px_rgba(99,102,241,0.1)]
+                transition-all duration-300 search-bar-entry">
+
+      <svg id="searchIcon"
+           class="w-4 h-4 text-white/30 shrink-0 transition-colors duration-300"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+      </svg>
+
+      <input id="searchInput"
+             type="text"
+             placeholder="Which products are you looking for Today"
+             autocomplete="off"
+             class="flex-1 bg-[#050608] text-sm text-white
+                    placeholder-white/25 outline-none"/>
+
+      <button id="clearSearch"
+              class="hidden text-white/30 hover:text-white/60
+                     text-sm leading-none transition-colors duration-200">
+        ✕
+      </button>
+
+    </div>
+
+    <p id="searchResultsBadge"
+       class="hidden mt-2 text-xs text-white/30 text-center transition-all duration-200">
+    </p>
+
+  </div>
+</section>
+
+
+<!-- =========================
+      LOADER
+========================= -->
+<div id="loader"
+     class="fixed inset-0 hidden items-center justify-center bg-black/80 backdrop-blur-sm z-50 transition-opacity">
+  <div class="w-10 h-10 border-2 border-white/10 border-t-indigo-500 rounded-full spin"></div>
+</div>
+
+<!-- =========================
+      VIEWS
+========================= -->
+
+
+
+<!-- MAIN CONTENT -->
+
+<main class="main-content flex-1">
+  <!-- =========================
+       APP LAYOUT WRAPPER
+  ========================= -->
+ <div id="appLayout"
+     class="w-100% flex flex-col md:flex-row transition-all duration-300 ">
+
+    <!-- =========================
+         MAIN CONTENT AREA
+    ========================= -->
+    <div id="contentWrapper"
+     class="flex-1 transition-all duration-300">
+      <!-- optional header text -->
+      <div id="vendorHeader"
+           class="max-w-7xl mx-auto px-4 sm:px-6 pt-4 text-sm text-gray-400 hidden">
+      </div>
+
+      <!-- =========================
+           PRODUCTS GRID
+      ========================= -->
+     <div id="productsGrid"
+     class="px-4 sm:px-6 py-6 grid gap-5
+     grid-cols-[repeat(auto-fit,minmax(220px,1fr))]
+     justify-items-center
+     overflow-y-auto">
+
+        <!-- PRODUCT CARD -->
+      
+
+      </div>
+
+      <!-- =========================
+           STORES GRID
+      ========================= -->
+     <div id="storesGrid"
+     class="grid gap-5
+     grid-cols-[repeat(auto-fit,minmax(220px,1fr))]
+     justify-items-center
+     overflow-y-auto hidden">
+        <!-- store cards go here -->
+      </div>
+
+    </div>
+
+    <!-- =========================
+         VENDOR PANEL (LAYOUT-BASED DESKTOP)
+    ========================= -->
+    <aside id="vendorPanel"
+           class="wide-screen-vendor-info-panel">
+
+    </aside>
+
+  </div>
+</main>
+
+
+<!-- =========================
+     MOBILE MODAL WRAPPER (ONLY USED ON SMALL SCREENS)
+========================= -->
+<div id="vendorMobileModal"
+     class="fixed inset-0 hidden z-50 md:hidden bg-black/40
+            opacity-0 scale-95 transition-all duration-200">
+  <div class="absolute inset-0 flex items-center justify-center p-4">
+
+    <div class="w-full max-w-md bg-[#0b0d12] rounded-2xl border border-white/10 overflow-hidden">
+
+      <!-- HEADER -->
+      <div class="p-4 flex items-center justify-between border-b border-white/10">
+        <h2 class="text-sm font-semibold">Store Info</h2>
+        <button id="close-less-width-screen-modal">✕</button>
+      </div>
+
+      <!-- CONTENT (dynamic inject here) -->
+      <div id="vendorMobileContent"
+           class="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<!-- =========================
+     ORDER MODAL
+========================= -->
+<!-- ORDER MODAL -->
+<div id="orderModal"
+     class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 hidden">
+<button id="closeOrderBtn"
+        class="absolute top-4 right-4 w-9 h-9 rounded-full
+               bg-white/10 hover:bg-white/20
+               flex items-center justify-center
+               text-white text-lg">
+  ✕
+</button>
+  <div class="flex items-center justify-center w-full h-full p-4">
+<div id="orderBox"
+     class="w-[92%] max-w-md
+            max-h-[80vh]
+            
+            border border-white/10
+            rounded-3xl
+            shadow-2xl
+            overflow-hidden
+            flex flex-col
+            scale-95 opacity-0 transition-all duration-300">
+
+    <!-- PRODUCT IMAGE -->
+    <div class="w-full h-48">
+      <img id="orderProductImage" class="w-full h-full object-cover rounded-t-3xl">
+    </div>
+
+    <!-- CONTENT -->
+  <div class="flex-1 overflow-y-auto">
+  <div class="p-5 space-y-4">
+    <!-- all content here -->
+ 
+
+      <!-- TITLE -->
+      <div>
+        <h2 id="orderProductName" class="text-lg font-semibold"></h2>
+        <p id="orderProductPrice" class="text-emerald-400 font-bold"></p>
+      </div>
+
+      <!-- USER INPUTS -->
+      <div class="space-y-3">
+
+        <input id="customerName" type="text" placeholder="Your Name" class="input"/>
+        <input id="customerPhone" type="text" placeholder="Phone Number" class="input"/>
+
+        <!-- QUANTITY -->
+        <div class="flex items-center gap-3">
+          <button id="minusQty" class="qtyBtn">-</button>
+          <span id="qtyValue">1</span>
+          <button id="plusQty" class="qtyBtn">+</button>
+        </div>
+
+      </div>
+
+      <!-- DELIVERY OPTION -->
+      <div id="deliverySection" class="space-y-2 hidden">
+        <p class="text-sm text-gray-400">Delivery Option</p>
+
+        <div class="flex gap-2">
+          <button class="deliveryBtn active-delivery-btn" data-choice="yes">Include Delivery</button>
+          <button class="deliveryBtn" data-choice="no">No Delivery</button>
+        </div>
+
+        <p id="deliveryInfo" class="text-xs text-gray-400"></p>
+        <input type="text" class="input" placeholder="Location" id="delivery_place">
+      </div>
+
+
+<div class="mb-3 p-3 rounded-xl bg-white/5 border border-white/10">
+  <p class="text-xs text-white/40">Selected Delivery Date</p>
+  <p id="datePreview" class="text-sm font-semibold text-indigo-300">
+    No date selected
+  </p>
+</div>
+
+      <!-- DATE PICKER -->
+      <div>
+        <p class="text-sm text-gray-400 mb-2">Select Delivery Date</p>
+        <div id="calendar" class="grid grid-cols-5 gap-3 justify-items-center"></div>
+      </div>
+
+      <!-- TIME SELECT -->
+      <div>
+        <p class="text-sm text-gray-400 mb-2">Delivery Time</p>
+
+        <div class="grid grid-cols-3 gap-2">
+          <div class="timeCard" data-time="morning">
+            <p>Morning</p>
+            <span>8AM - 12PM</span>
+          </div>
+          <div class="timeCard" data-time="afternoon">
+            <p>Afternoon</p>
+            <span>12PM - 4PM</span>
+          </div>
+          <div class="timeCard" data-time="evening">
+            <p>Evening</p>
+            <span>4PM - 8PM</span>
+          </div>
+        </div>
+      </div>
+
+<!-- 🧾 Price Breakdown -->
+<div class="text-sm text-white/60 mt-3 space-y-2">
+  <p id="subtotalText">Subtotal: KES 0</p>
+  <p id="deliveryText">Delivery: KES 0</p>
+</div>
+
+
+      <!-- TOTAL -->
+      <div class="flex justify-between text-lg font-semibold">
+        <span>Total</span>
+        <span id="orderTotal">KES 0</span>
+      </div>
+
+      <!-- NOTE -->
+      <p id="deliveryNote" class="text-xs text-gray-400"></p>
+
+      <!-- ACTION -->
+      <div class="p-4 border-t border-white/10">
+  <button id="submitOrder"
+          class="w-full bg-indigo-500 hover:bg-emerald-600 py-3 rounded-xl font-semibold">
+    Place Order
+  </button>
+</div>
+  </div>
+    </div>
+  </div>
+</div>
+</div>
+
+
+<!-- RATING MODAL -->
+<div id="ratingModal" class="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[9999]">
+  <div class="w-[90%] max-w-md bg-[#0f1115] border border-white/10 rounded-2xl p-5 space-y-4">
+
+    <h2 id="ratingTitle" class="text-lg font-semibold">
+      Rate
+    </h2>
+
+    <!-- STARS -->
+    <div class="flex gap-2 justify-center text-2xl cursor-pointer" id="starContainer">
+      <span class="star" data-value="1">☆</span>
+      <span class="star" data-value="2">☆</span>
+      <span class="star" data-value="3">☆</span>
+      <span class="star" data-value="4">☆</span>
+      <span class="star" data-value="5">☆</span>
+    </div>
+
+    <!-- REVIEW -->
+    <textarea id="ratingReview"
+      class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm outline-none"
+      placeholder="Optional review..."></textarea>
+
+    <!-- ACTIONS -->
+    <div class="flex gap-2">
+
+      <button id="submitRating"
+        class="flex-1 bg-indigo-500 hover:bg-indigo-600 rounded-lg py-2 text-sm">
+        Submit
+      </button>
+
+      <button id="closeRatingModal"
+        class="px-4 bg-white/10 hover:bg-white/15 rounded-lg text-sm">
+        Cancel
+      </button>
+
+    </div>
+
+  </div>
+</div>
+
+<div id="productModal"
+  class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center
+         opacity-0 pointer-events-none transition-all duration-300 p-3">
+
+  <!-- PANEL -->
+  <div id="productModalContent"
+    class="relative w-[85%] max-w-4xl
+           max-h-[60vh]
+           bg-black border border-white/10 rounded-2xl
+           shadow-2xl
+           flex flex-col
+           overflow-hidden
+           transform scale-90 opacity-0 transition-all duration-300">
+
+    <!-- CLOSE -->
+    <button id="closeProductModal"
+      class="absolute top-3 right-3 w-9 h-9 flex items-center justify-center
+             rounded-full bg-black/80 hover:bg-black transition-all duration-300 z-10">
+      ✕
+    </button>
+
+    <!-- TOP SECTION -->
+    <div class="p-4 sm:p-5 overflow-y-auto">
+      <img id="modalImage"
+        class="w-full h-40 sm:h-48 object-cover rounded-xl mb-3"/>
+
+      <h2 id="modalName" class="text-lg sm:text-xl font-bold text-white"></h2>
+      <p id="modalCategory" class="text-xs text-white/60 mt-1"></p>
+
+      <p id="modalPrice" class="text-base text-green-400 mt-2"></p>
+      <p id="modalStock" class="text-xs text-white/60"></p>
+
+      <p id="modalDescription" class="text-white/80 mt-3 text-sm"></p>
+    </div>
+
+    <!-- REVIEWS -->
+    <div id="productReviewsSection"
+      class="border-t border-white/10 flex flex-col flex-1 min-h-0">
+
+      <div class="px-4 py-2">
+        <h3 class="text-sm font-semibold text-white">Ratings & Reviews</h3>
+        <div id="reviewsSummary" class="text-xs text-white/60"></div>
+      </div>
+
+      <div id="reviewsList"
+        class="flex-1 overflow-y-auto px-4 pb-3 space-y-2">
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL OVERLAY WRAPPER -->
+<div id="auth-modal" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+  
+  <!-- MODAL CONTAINER -->
+  <div class="authentication relative w-full max-w-[450px] bg-[#0b0f19]/90 border border-white/10 p-6 md:p-8 rounded-2xl shadow-2xl transition-all duration-300 scale-95 ease-out">
+    
+    <!-- Close Button -->
+    <button id="close-modal-btn" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors text-xl">✕</button>
+
+    <!-- Header / Switcher -->
+    <div class="flex flex-col items-center justify-between mb-6 gap-6 text-center">
+      <div class="relative w-[260px] h-10 bg-white/5 rounded-xl p-1 flex items-center cursor-pointer border border-white/5" id="mode-trigger">
+        <div id="pill" class="absolute h-8 w-[calc(50%-4px)] bg-white rounded-lg shadow-lg z-0 transition-all duration-300 ease-in-out"></div>
+        <div class="relative z-10 w-1/2 text-center text-[11px] font-bold transition-colors duration-300 text-black select-none" id="tab-login">LOG IN</div>
+        <div class="relative z-10 w-1/2 text-center text-[11px] font-bold transition-colors duration-300 text-slate-500 select-none" id="tab-signup">SIGN UP</div>
+      </div>
+    </div>
+
+    <!-- Forms Area -->
+    <form class="client-form flex flex-col gap-4">
+      
+      <!-- SIGN UP EXTRA FIELDS (Slides open only when is-signup class is active) -->
+      <div class="sign-up-panel relative overflow-hidden transition-all duration-300 flex flex-col gap-4">
+        <div class="input_holder flex items-center bg-white/[0.03] border border-white/10 rounded-xl h-[44px] focus-within:border-indigo-500/50 transition-colors">
+          <input type="text" id="first-name" placeholder="First Name" class="flex-1 h-full px-4 bg-transparent text-white text-sm outline-none">
+        </div>
+
+        <div class="input_holder flex items-center bg-white/[0.03] border border-white/10 rounded-xl h-[44px] focus-within:border-indigo-500/50 transition-colors">
+          <input type="text" id="second-name" placeholder="Second Name" class="flex-1 h-full px-4 bg-transparent text-white text-sm outline-none">
+        </div>    
+         
+        <div class="input_holder flex items-center bg-white/[0.03] border border-white/10 rounded-xl h-[44px] focus-within:border-indigo-500/50 transition-colors">
+          <input type="text" id="location-input" placeholder="State / county" class="flex-1 h-full px-4 bg-transparent text-white text-sm outline-none">
+        </div>
+
+       <div class="flex items-center bg-white/[0.03] border border-white/10 rounded-xl h-[44px] focus-within:border-indigo-500/50 transition-colors"
+     style="overflow: visible; position: relative;">
+
+  <!-- CUSTOM COUNTRY SELECT -->
+  <div class="relative w-[110px] h-full" style="flex-shrink: 0;">
+    <div id="country-trigger"
+         class="h-full px-3 flex items-center justify-between text-sm text-white cursor-pointer border-r border-white/10 select-none gap-1">
+      <span id="country-selected">+254 🇰🇪</span>
+      <span class="text-xs text-slate-400">▼</span>
+    </div>
+
+  </div>
+
+  <!-- PHONE INPUT -->
+  <input type="tel" id="phone-number"
+         class="flex-1 h-full px-4 bg-transparent text-white text-sm outline-none"
+         placeholder="712 345 678" />
+</div>
+
+      </div>
+
+      <!-- CORE CREDENTIALS (Always visible to both Login and Sign Up) -->
+      <div class="shared-fields flex flex-col gap-4">
+        <div class="input_holder flex items-center bg-white/[0.03] border border-white/10 rounded-xl h-[44px] focus-within:border-indigo-500/50 transition-colors">
+          <input id="email-input" type="email" placeholder="Enter your email" class="flex-1 h-full px-4 bg-transparent text-white text-sm outline-none" required>
+        </div>
+
+        <div class="input_holder flex items-center bg-white/[0.03] border border-white/10 rounded-xl h-[44px] focus-within:border-indigo-500/50 transition-colors">
+          <input id="password-input" type="password" placeholder="Password" class="flex-1 h-full px-4 bg-transparent text-white text-sm outline-none" required>
+          <a id="forgot-password-link" 
+   class="text-xs text-indigo-400 hover:text-indigo-300 cursor-pointer transition-all pr-3 whitespace-nowrap">
+  Forgot?
+</a>
+        </div>    
+      </div>
+
+      <!-- Action Button -->
+      <button type="submit" id="submit-btn" class="h-11 mt-2 bg-white hover:bg-slate-100 text-black font-extrabold rounded-xl text-sm transition-all shadow-xl w-full active:scale-[0.98]">
+        Log In
+      </button>
+    </form>
+
+<!-- PROGRESS BAR -->
+<div id="auth-progress" class="hidden mt-4 space-y-1">
+  <div class="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+    <div id="auth-progress-bar" class="h-full bg-indigo-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+  </div>
+  <p id="auth-progress-label" class="text-xs text-white/50 text-center"></p>
+</div>
+
+
+  </div>
+</div>
+
+
+<div id="cart-fab">
+  <div id="cart-badge">0</div>
+  <div id="cart-tooltip">Total: KES 0</div>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+       fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+  </svg>
+</div>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "Gmarketfy Explore Marketplace",
+  "description": "Browse products and stores on Gmarketfy marketplace.",
+  "url": "https://marketfy-82c42.web.app/explore.html"
+}
+</script>
+
+<script src="ordering.js"></script>
+<!--<script src="simulator.js"></script>-->
+<script type="module" src="explore.js"></script>
+
+    <div id="country-list"
+         class="hidden absolute top-[calc(100%+6px)] left-0 w-48 bg-[#0f1422] border border-white/10 rounded-xl p-1.5 max-h-48 overflow-y-auto z-[9999]">
+    </div>
+
+<!-- LOADING DOTS -->
+<div id="loading-dots-bar" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-[9999]
+     flex items-center gap-3 px-5 py-3 rounded-2xl
+     bg-black/70 backdrop-blur-md border border-white/10 shadow-xl">
+  <div class="flex items-center gap-1">
+    <span class="dot w-2 h-2 rounded-full bg-indigo-400"></span>
+    <span class="dot w-2 h-2 rounded-full bg-indigo-400"></span>
+    <span class="dot w-2 h-2 rounded-full bg-indigo-400"></span>
+  </div>
+  <p id="loading-dots-message" class="text-xs text-white/70"></p>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gmarketfy  | authentication</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="tailwind.js"></script>
+
+    <link rel="stylesheet" href="./multi-authentication.css">
+
+    <!-- FAVICON SETUP -->
+<link rel="icon" href="/favicon.ico" />
+
+<!-- PNG favicons -->
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+
+<!-- Apple Touch Icon -->
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+<!-- Android / PWA style icons -->
+<link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
+
+<!-- Web App Theme Color -->
+<meta name="theme-color" content="#000000" />
+
+<!-- ======================================
+   GMARKETF Y / GRESSOR INTERNAL PAGE META
+   DO NOT INDEX (APP / DASHBOARD PAGES)
+====================================== -->
+
+<!-- SEO CONTROL -->
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+<meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+<meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+
+<!-- BASIC PAGE SETUP -->
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+<!-- BRAND IDENTITY -->
+<meta name="application-name" content="Gmarketfy" />
+<meta name="author" content="Gressor" />
+<meta name="creator" content="Gressor" />
+<meta name="publisher" content="Gressor" />
+<meta name="generator" content="Gmarketfy Multi-Vendor Platform" />
+
+<!-- PAGE CLASSIFICATION -->
+<meta name="description" content="Gmarketfy internal platform interface under Gressor ecosystem. Secure application layer for vendors, customers, and system operations." />
+<meta name="keywords" content="Gmarketfy, Gressor, marketplace, multi-vendor system, vendor dashboard, ecommerce platform, secure application" />
+<meta name="referrer" content="no-referrer" />
+
+<!-- SECURITY / CACHE CONTROL -->
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+
+<!-- UI / BROWSER BEHAVIOR -->
+<meta name="format-detection" content="telephone=no" />
+<meta name="theme-color" content="#000000" />
+
+<!-- BRAND OWNERSHIP -->
+<meta name="author" content="Nelson Macharia" />
+<meta name="creator" content="Nelson Macharia" />
+<meta name="copyright" content="© 2026 Gressor" />
+<meta name="publisher" content="Gressor" />
+
+<meta name="application-name" content="Gmarketfy by Gressor" />
+<meta name="owner" content="Nelson Macharia" />
+
+</head>
+<body class="bg-[#050608] min-h-screen flex items-center justify-center p-4 text-slate-200">
+
+    <div class="wide-panel glass-card p-[clamp(1.5rem,5vw,3.5rem)] rounded-[2rem] shadow-2xl">
+        <div class="sticky top-0 z-50 flex justify-center mb-10 pt-2">
+
+    <div class="px-6 py-2 rounded-full 
+                bg-white/[0.02] border border-white/5 
+                backdrop-blur-md shadow-lg">
+
+       <h1 class="text-xl md:text-2xl font-extrabold tracking-wider text-transparent bg-clip-text gradient-move" id="home">
+         Gmarketfy   
+       </h1>
+    </div>
+
+</div>
+        <!-- Header & Toggler -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-8 text-center md:text-left">
+            <div class="flex-1">
+                <h1 id="title" class="text-3xl font-extrabold text-white tracking-tight">Merchant Access</h1>
+                <p id="desc" class="text-slate-500 text-sm mt-1 font-medium">Manage your global commerce operations.</p>
+            </div>
+
+            <div class="relative w-[280px] h-10 bg-white/5 rounded-xl p-1 flex items-center cursor-pointer border border-white/5 mx-auto md:mx-0" id="mode-trigger">
+                <div id="pill" class="slider-pill absolute h-8 w-[calc(50%-4px)] bg-white rounded-lg shadow-lg z-0"></div>
+                <div class="relative z-10 w-1/2 text-center text-[11px] font-bold transition-colors duration-300 text-black" id="tab-login">LOG IN</div>
+                <div class="relative z-10 w-1/2 text-center text-[11px] font-bold transition-colors duration-300 text-slate-500" id="tab-signup">OPEN STORE</div>
+            </div>
+        </div>
+
+        <form id="vendor-form" class="space-y-10">
+            
+            <!-- REGISTRATION SECTION -->
+            <div id="signup-extra-fields" class="hidden space-y-10">
+                
+                <!-- Brand Banner -->
+                <div class="space-y-6">
+                    <div class="flex flex-col items-center md:items-start gap-2">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Store Banner</label>
+                       <!-- ONLY showing the parts that changed so you can track easily -->
+
+                <!-- IMAGE PREVIEW -->
+                <div id="image-preview" class="preview-banner flex flex-col items-center justify-center overflow-hidden">
+                            <div class="flex flex-col items-center gap-2 group">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-600 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span class="text-[10px] font-bold text-slate-600 tracking-widest uppercase">Upload Brand Image</span>
+                            </div>
+                        </div>
+                        <input type="file" id="logo-upload" class="hidden" accept="image/*">
+                    </div>
+
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2 text-center md:text-left">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Store Name</label>
+                            <input type="text" class="input-compact w-full px-4 bg-white/[0.03] border border-white/10 rounded-lg text-white text-sm outline-none focus:border-indigo-500/50 text-center md:text-left" placeholder="e.g. Nexus Global">
+                        </div>
+
+                        
+                        
+
+<div class="space-y-2 text-center md:text-left">
+
+    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+        Phone Number
+    </label>
+
+<div class="flex items-center bg-white/[0.03] border border-white/10 rounded-lg overflow-visible h-[40px]">
+
+    <!-- CUSTOM COUNTRY SELECT -->
+    <div class="relative w-[140px] h-full">
+        <div 
+            id="country-trigger" 
+            class="h-full px-3 flex items-center justify-between text-sm text-white cursor-pointer border-r border-white/10"
+        >
+            <span id="country-selected">+254 🇰🇪</span>
+            <span>▾</span>
+        </div>
+
+        <div 
+            id="country-list" 
+            class="hidden absolute top-full left-0 w-full bg-[#151c2c] border border-white/10 rounded-lg mt-2 max-h-48 overflow-y-auto z-50"
+        ></div>
+    </div>
+
+    <!-- PHONE INPUT -->
+    <input 
+        type="tel"
+        id="phone-number"
+        class="flex-1 h-full px-4 bg-transparent text-white text-sm outline-none"
+        placeholder="712 345 678"
+    />
+</div>
+
+</div>  
+
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+     <div class="space-y-2 text-center md:text-left">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Store Description</label>
+                            <textarea class="input-compact w-full px-4 bg-white/[0.03] border border-white/10 rounded-lg text-white text-sm outline-none focus:border-indigo-500/50 text-center md:text-left descrption_field" placeholder="e.g. We sell the best tech gadgets." id="store_description"></textarea>
+                        </div>
+     <div class="space-y-2 text-center md:text-left">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Owner Description</label>
+                            <textarea  class="input-compact w-full px-4 bg-white/[0.03] border border-white/10 rounded-lg text-white text-sm outline-none focus:border-indigo-500/50 text-center md:text-left descrption_field" placeholder="e.g. we are a team of tech enthusiasts passionate about gadgets." id="owner_description"></textarea>
+                        </div>
+</div>
+
+</div>
+
+                <!-- Logistics Selectors -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-white/5">
+                    <div class="space-y-2 text-center md:text-left">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Category</label>
+                       <!-- CATEGORY -->
+                        <div class="custom-select-wrapper " id="cat-wrapper">
+      <div class="input-compact w-full px-4 bg-white/[0.03] border border-white/10 rounded-lg flex items-center justify-center md:justify-start text-sm text-slate-300" data-selected="Digital Art" id="cat-val">Digital Art</div>
+             <div class="options-menu max-h-48 overflow-y-auto z-50" id="cat-list">
+                        <div class="option-item cat_opt">Digital Art</div>
+                        <div class="option-item cat_opt">Electronics</div>
+                        <div class="option-item cat_opt">Apparel</div>
+
+                        <div class="option-item cat_opt">Beauty & Cosmetics</div>
+                        <div class="option-item cat_opt">Home & Living</div>
+                        <div class="option-item cat_opt">Food & Beverages</div>
+                        <div class="option-item cat_opt">Health & Wellness</div>
+                        <div class="option-item cat_opt">Sports & Fitness</div>
+                        <div class="option-item cat_opt">Books & Education</div>
+                        <div class="option-item cat_opt">Software & SaaS</div>
+                        <div class="option-item cat_opt">Gaming</div>
+                        <div class="option-item cat_opt">Furniture</div>
+                        <div class="option-item cat_opt">Jewelry & Accessories</div>
+                        <div class="option-item cat_opt">Automotive</div>
+                        <div class="option-item cat_opt">Real Estate Services</div>
+                        <div class="option-item cat_opt">Fashion & Apparel</div>
+                        <div class="option-item cat_opt">Marketing & Branding Services</div>
+                        <div class="option-item cat_opt">Photography & Video</div>
+                        <div class="option-item cat_opt">Printing & Custom Goods</div>
+                        <div class="option-item cat_opt">Agriculture & Farming Products</div>
+
+                        <div class="option-item cat_opt">Digital Marketing Services</div>
+                        <div class="option-item cat_opt">Web Development</div>
+                        <div class="option-item cat_opt">Mobile Apps</div>
+                        <div class="option-item cat_opt">AI Tools & Automation</div>
+                        <div class="option-item cat_opt">NFTs & Blockchain Assets</div>
+                        <div class="option-item cat_opt">Subscriptions & Memberships</div>
+                        <div class="option-item cat_opt">Event Services</div>
+                        <div class="option-item cat_opt">Travel & Tourism Services</div>
+                        <div class="option-item cat_opt">Printing & Packaging</div>
+                        <div class="option-item cat_opt">Repair & Maintenance Services</div>
+                        <div class="option-item cat_opt">Tutoring & Coaching</div>
+                        <div class="option-item cat_opt">Music & Audio Services</div>
+                        <div class="option-item cat_opt">Interior Design</div>
+                        <div class="option-item cat_opt">Construction & Contractors</div>
+                        <div class="option-item cat_opt">Legal & Consulting Services</div>
+                        <div class="option-item cat_opt">Other</div>
+              </div>
+                        </div>
+                    </div>
+                    <div class="space-y-2 text-center md:text-left">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Currency</label>
+                        <!-- CURRENCY -->
+                            <div class="custom-select-wrapper" id="cur-wrapper">
+                            <div class="input-compact w-full px-4 bg-white/[0.03] border border-white/10 rounded-lg flex items-center justify-center md:justify-start text-sm text-slate-300" data-selected="KES" id="cur-val">KES (Ksh)</div>
+                            <div class="options-menu" id="cur-list">
+                                <div class="option-item cur-opt" >KES (Ksh)</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-2 text-center md:text-left">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Payout</label>
+                        <!-- PAYOUT -->
+<div class="custom-select-wrapper" id="pay-wrapper">
+                            <div class="input-compact  w-full px-4 bg-white/[0.03] border border-white/10 rounded-lg flex items-center justify-center md:justify-start text-sm text-slate-300 " data-selected="M-Pesa" id="pay-val">M-Pesa</div>
+                            <div class="options-menu max-h-48 overflow-y-auto z-50" id="pay-list">
+                            <div class="option-item pay_opt">M-Pesa</div>
+                            <!--future payment functionality will be added here-->
+                            </div>
+ </div>
+                   </div>
+                </div>
+
+                <!-- PHYSICAL STORE TOGGLE -->
+<div class="space-y-6 pt-4 border-t border-white/5">
+    
+    <div class="flex items-center justify-between bg-white/[0.02] border border-white/5 rounded-xl px-5 py-4">
+        <div>
+            <p class="text-sm font-semibold text-white">Physical Store</p>
+            <p class="text-xs text-slate-500">Do you operate from a real-world location?</p>
+        </div>
+
+        <!-- Toggle -->
+        <div id="store-toggle" class="w-12 h-6 bg-white/10 rounded-full p-1 cursor-pointer transition-all">
+            <div id="store-toggle-dot" class="w-4 h-4 bg-white rounded-full transition-all"></div>
+        </div>
+    </div>
+
+   <!-- ADDRESS FIELDS -->
+<div id="store-fields" class="store-fields grid grid-cols-1 md:grid-cols-2 gap-6">
+
+    <!-- Street Address -->
+    <div class="space-y-2 md:col-span-2">
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Street Address</label>
+        <input type="text" class="input-compact w-full px-4 bg-white/[0.03] border border-white/10 rounded-lg text-white text-sm outline-none focus:border-indigo-500/50" placeholder="Street name, building number" id="street_adress">
+    </div>
+
+    <!-- Apartment / Suite -->
+    <div class="space-y-2 md:col-span-2">
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Apartment / Suite (Optional)</label>
+        <input type="text" class="input-compact w-full px-4 bg-white/[0.03] border border-white/10 rounded-lg text-white text-sm outline-none focus:border-indigo-500/50" placeholder="Apartment, suite, unit, etc.">
+    </div>
+
+    <!-- City -->
+    <div class="space-y-2">
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">City</label>
+        <input type="text" class="input-compact w-full px-4 bg-white/[0.03] border border-white/10 rounded-lg text-white text-sm outline-none focus:border-indigo-500/50" placeholder="e.g. Nairobi">
+    </div>
+
+    <!-- State / Region -->
+    <div class="space-y-2">
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">State / Region</label>
+        <input type="text" class="input-compact w-full px-4 bg-white/[0.03] border border-white/10 rounded-lg text-white text-sm outline-none focus:border-indigo-500/50" placeholder="e.g. Kiambu County">
+    </div>
+
+    <!-- Postal Code -->
+    <div class="space-y-2">
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Postal Code</label>
+        <input type="text" class="input-compact w-full px-4 bg-white/[0.03] border border-white/10 rounded-lg text-white text-sm outline-none focus:border-indigo-500/50" placeholder="e.g. 00100">
+    </div>
+
+    <!-- Country -->
+    <div class="space-y-2">
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Country</label>
+        <input type="text" class="input-compact w-full px-4 bg-white/[0.03] border border-white/10 rounded-lg text-white text-sm outline-none focus:border-indigo-500/50" placeholder="e.g. Kenya">
+    </div>
+
+</div>
+
+</div>
+            </div>
+
+            <!-- CORE LOGIN SECTION -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2 text-center md:text-left">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email Address</label>
+                    <input type="email" required class="input-compact w-full px-4 bg-white/[0.03] border border-white/10 rounded-lg text-white text-sm outline-none focus:border-indigo-500/50 text-center md:text-left" placeholder="admin@nexus.com">
+                </div>
+                <div class="space-y-2 text-center md:text-left">
+                    <div class="flex justify-center md:justify-between items-center px-1">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Password</label>
+                        <a href="./email-verification.html" class="text-[10px] font-bold text-indigo-400 md:block forgot-password">Forgot?</a>
+                    </div>
+                    <input type="password" required class="input-compact w-full px-4 bg-white/[0.03] border border-white/10 rounded-lg text-white text-sm outline-none focus:border-indigo-500/50 text-center md:text-left" placeholder="••••••••">
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="pt-8 border-t border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-8 text-center md:text-left">
+                <div class="flex items-center gap-3 justify-center md:justify-start">
+                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <p class="text-[11px] text-slate-500 font-medium">Network: Flutterwave Secure</p>
+                </div>
+                <button type="submit" id="submit-btn" class="h-11 px-16 bg-white hover:bg-slate-100 text-black font-extrabold rounded-xl text-sm transition-all shadow-xl w-full md:w-auto active:scale-95">
+                    Sign In to Dashboard
+                </button>
+            </div>
+
+            <div class="mt-10 pt-6 border-t border-white/5 flex justify-center">
+    
+    <div class="max-w-xl text-center px-5 py-4 rounded-xl 
+                bg-white/[0.02] border border-white/5 
+                backdrop-blur-sm shadow-lg">
+
+        <p class="text-[11px] text-slate-500 leading-relaxed">
+            
+            <span class="inline-flex items-center gap-1 text-indigo-400 font-semibold">
+                ⚡ Note:
+            </span>
+
+            Payment-related features shown in this interface are currently for future use. 
+            No payment processing is active at this stage. We will notify you once this functionality is enabled.
+
+        </p>
+
+    </div>
+</div>
+        </form>
+    </div>
+
+<a href="/Gmarketfy_tearms_and_policy.html"
+   class="mt-6 inline-block text-xs text-slate-500 hover:text-white transition duration-300 relative group">
+
+  Terms & Policy
+
+  <span class="absolute left-0 -bottom-1 w-0 h-[1px] bg-indigo-500 group-hover:w-full transition-all duration-300"></span>
+
+</a>
+
+
+<div class="mt-10 flex justify-center">
+    <p class="text-[11px] text-slate-500 leading-relaxed text-center px-4">
+
+        <span class="text-white font-semibold">© Gressor</span>
+        <span id="brand-message" class="ml-1"></span>
+
+    </p>
+</div>
+<script>
+
+
+</script>
+    <script type="module" src="./multi-authentication.js"></script>
+
+
+
+
+<div id="alert-box" class="opacity-0 pointer-events-none transition-all">
+    <div class="w-10 h-1 bg-white/30 rounded-full mx-auto mb-2"></div>
+    <div id="alert-text"></div>
+    <!-- progress bar -->
+    <div class="w-full h-1 bg-white/20 mt-2 rounded-full overflow-hidden">
+        <div id="alert-progress" class="h-full bg-white w-full"></div>
+    </div>
+</div>
+
+
+</body>
+</html>

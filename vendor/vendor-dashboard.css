@@ -1,0 +1,591 @@
+/* ============================================
+   VENDOR DASHBOARD — GMARKETFY
+   ============================================ */
+
+/* ----- BASE ----- */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+/* ----- GLASS ----- */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ----- GRADIENT TEXT ----- */
+.gradient-move {
+  background: linear-gradient(270deg, #6366f1, #a855f7, #ec4899, #6366f1);
+  background-size: 600% 600%;
+  animation: gradientShift 6s ease infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ----- TAB SYSTEM ----- */
+.tab {
+  display: none;
+  width: 100%;
+}
+
+.tab.active {
+  display: block;
+  animation: fadeSlideIn 0.35s ease;
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ----- STAT CARDS ----- */
+.stat-card {
+  transition: all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  cursor: default;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(99, 102, 241, 0.25);
+  box-shadow: 0 16px 40px -12px rgba(99, 102, 241, 0.15);
+}
+
+/* ----- NAV BADGE ----- */
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  background: #ef4444;
+  color: white;
+  border-radius: 999px;
+  border: 2px solid rgba(3, 4, 6, 1);
+  box-shadow: 0 6px 15px rgba(239, 68, 68, 0.25);
+  animation: badgePop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 20;
+  pointer-events: none;
+}
+
+@keyframes badgePop {
+  from { transform: scale(0.4); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* ----- MOBILE NAV PANEL ----- */
+#mobile-nav-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+#mobile-nav-overlay.open #mobile-nav-panel {
+  transform: translateY(0);
+}
+
+.mobile-nav-btn {
+  transition: all 0.2s ease;
+}
+
+.mobile-nav-btn:hover,
+.mobile-nav-btn:active {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.3);
+  transform: scale(1.03);
+}
+
+/* ----- LOADER ----- */
+#loader.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* ----- MODAL BASE ----- */
+.modal-overlay-base.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.modal-overlay-base.open .modal-panel-base {
+  transform: scale(1);
+}
+
+/* ----- INPUTS ----- */
+.setting-input {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.setting-input:focus {
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+  outline: none;
+}
+
+/* ----- BUTTONS ----- */
+.quick-action {
+  transition: all 0.2s ease;
+}
+
+.quick-action:active {
+  transform: scale(0.96);
+}
+
+.order-filter-btn,
+.period-btn {
+  transition: all 0.2s ease;
+}
+
+.order-filter-btn:hover,
+.period-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ----- DRIVER CARD ----- */
+.driver-card {
+  transition: all 0.3s ease;
+}
+
+.driver-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(99, 102, 241, 0.2);
+  box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.4);
+}
+
+/* ----- STATUS BADGES ----- */
+.status-free {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+.status-on-road {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.15);
+}
+
+.status-off-duty {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.12);
+}
+
+/* ----- TOGGLE SWITCHES ----- */
+.toggle-active {
+  background: rgba(99, 102, 241, 0.3) !important;
+}
+
+.toggle-active .toggle-knob {
+  transform: translateX(24px);
+  background: #818cf8 !important;
+}
+
+/* ----- ORDER CARD ----- */
+.order-card {
+  transition: all 0.25s ease;
+}
+
+.order-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ----- SCROLLBAR ----- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.35);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.55);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.35) rgba(255, 255, 255, 0.02);
+}
+
+/* ----- LOADING DOTS ----- */
+.dot {
+  animation: bounce-dot 0.6s infinite alternate;
+}
+
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce-dot {
+  from { transform: translateY(0);   opacity: 0.4; }
+  to   { transform: translateY(-5px); opacity: 1; }
+}
+
+/* ----- DELIVERY MODE BUTTONS ----- */
+.delivery-mode-btn.active,
+.payment-timing-btn.active {
+  background: rgba(99, 102, 241, 0.2) !important;
+  border-color: rgba(99, 102, 241, 0.5) !important;
+  color: #c7d2fe !important;
+}
+
+/* ----- PRINT STYLES ----- */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #print-container,
+  #print-container * {
+    visibility: visible;
+  }
+
+  #print-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    display: block !important;
+    background: white;
+    color: black;
+  }
+
+  #print-content {
+    padding: 20px;
+  }
+
+  #print-content h1,
+  #print-content h2,
+  #print-content h3,
+  #print-content p,
+  #print-content table {
+    color: #111 !important;
+  }
+
+  #print-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+  }
+
+  #print-content th,
+  #print-content td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: left;
+    font-size: 12px;
+  }
+
+  #print-content th {
+    background: #f5f5f5;
+    font-weight: 600;
+  }
+
+  #print-content .print-header {
+    text-align: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #333;
+  }
+
+  #print-content .print-header h1 {
+    font-size: 20px;
+    margin: 0 0 4px;
+  }
+
+  #print-content .print-header p {
+    font-size: 12px;
+    color: #555 !important;
+    margin: 0;
+  }
+
+  #print-content .print-stat-grid {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  #print-content .print-stat {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    text-align: center;
+  }
+
+  #print-content .print-stat h2 {
+    font-size: 24px;
+    margin: 4px 0;
+  }
+
+  #print-content .print-stat p {
+    font-size: 11px;
+    color: #666 !important;
+  }
+
+  #print-content .print-footer {
+    margin-top: 24px;
+    padding-top: 12px;
+    border-top: 1px solid #ddd;
+    text-align: center;
+    font-size: 10px;
+    color: #999 !important;
+  }
+
+  /* Hide chart canvases, show their image replacements */
+  canvas {
+    display: none !important;
+  }
+
+  .print-chart-img {
+    display: block !important;
+    max-width: 100%;
+    margin: 12px 0;
+  }
+
+  @page {
+    margin: 15mm;
+    size: A4;
+  }
+}
+
+/* Chart images hidden on screen, shown in print */
+.print-chart-img {
+  display: none;
+}
+
+/* ----- RESPONSIVE ----- */
+@media (max-width: 640px) {
+  .stat-card h2 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  #desktop-nav {
+    display: flex !important;
+  }
+}
+
+  .slider-gradient {
+    background:  #6366f1;
+    background-size: 200% 200%;
+  }
+
+
+  /* ----- MOBILE NAV TRIGGER ----- */
+#mobile-menu-trigger {
+  display: none; /* hidden by default, shown via JS on mobile */
+}
+
+/* ----- PRODUCT MODAL — CUSTOM DROPDOWNS ----- */
+#pf-image-preview-area {
+  width: 100%;
+  height: 180px;
+  border: 2px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  background-color: rgba(255, 255, 255, 0.02);
+  transition: all 0.4s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+#pf-image-preview-area:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.custom-select-wrapper {
+  position: relative;
+  cursor: pointer;
+}
+
+.options-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: #151c2c;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  z-index: 50;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.options-menu.active {
+  display: block;
+  animation: slideUpFade 0.2s ease-out;
+}
+
+.option-item {
+  padding: 10px 16px;
+  font-size: 13px;
+  color: #94a3b8;
+  transition: all 0.2s;
+}
+
+.option-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Payment timing active state */
+.payment-timing-btn.active {
+  background: rgba(99, 102, 241, 0.15) !important;
+  border-color: rgba(99, 102, 241, 0.5) !important;
+  color: #c7d2fe !important;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.1);
+}
+
+/* Image preview states */
+#pf-image-preview-area.has-image {
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+#pf-image-preview-area.has-image #pf-image-placeholder {
+  display: none;
+}
+
+#pf-image-preview-area.has-image #pf-image-preview {
+  display: block;
+}
+
+#pf-image-preview-area.has-image #pf-image-overlay {
+  display: flex;
+}
+
+/* Remove number input spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+
+/* ===== INPUT GLOW ===== */
+.input-glow:focus {
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.25), 0 10px 25px rgba(0,0,0,0.25);
+}
+
+/* ===== BUTTON DEPTH ===== */
+.btn-depth {
+  transition: all 0.2s ease;
+}
+.btn-depth:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+}
+.btn-depth:active {
+  transform: scale(0.97);
+}
+
+/* ===== MODAL ENTRY ===== */
+.modal-enter {
+  animation: modalIn 0.35s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ===== IMAGE HOVER ===== */
+.image-hover:hover {
+  transform: scale(1.03);
+}
+
+/* ===== CHIP ACTIVE ===== */
+.vehicle-chip.active {
+  background: rgba(99,102,241,0.15);
+  border-color: rgba(99,102,241,0.4);
+  color: white;
+}
+
+/* ===== SUBMIT LOADING ===== */
+.btn-loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+
+#driver-detail-overlay.active #driver-detail-modal {
+  transform: scale(1);
+}
+
+#driver-detail-overlay.active {
+  opacity: 1;
+}
+
+/* ----- TOGGLE SWITCHES (Settings Tab) ----- */
+.toggle-active {
+  background: rgba(99, 102, 241, 0.3) !important;
+}
+
+.toggle-knob {
+  transform: translateX(24px);
+  background: #818cf8 !important;
+}
+
+/* ----- DELIVERY MODE BUTTONS ----- */
+.delivery-mode-btn.active {
+  background: rgba(99, 102, 241, 0.2) !important;
+  border-color: rgba(99, 102, 241, 0.5) !important;
+  color: #c7d2fe !important;
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.1);
+}
+
+.delivery-mode-btn {
+  transition: all 0.2s ease;
+}
+
+.delivery-mode-btn:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+}
