@@ -30,4 +30,9 @@ urlpatterns = [
     path('sendtoyourself/', views.send_test_payout, name='send_b2c_payout'),
     path("b2c/result/", views.b2c_result_callback, name="b2c_result_callback"),
     path("b2c/timeout/", views.b2c_timeout_callback, name="b2c_timeout_callback"),
+    path(
+    "payments/status/<str:transaction_reference>/",
+    views.payment_status_view,
+    name="payment_status",
+),
 ]

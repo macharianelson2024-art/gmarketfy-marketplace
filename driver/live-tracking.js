@@ -1,5 +1,6 @@
 /**
  * live-tracking.js
+ * -----------------------------------------------------------------------
  * Driver-side location broadcasting (writes to Realtime Database) + client-
  * side live preview map with a scroll-triggered "open in Google Maps" handoff.
  *
@@ -18,8 +19,9 @@
  * onDisconnect() if the driver's connection drops mid-delivery.
  *
  * Usage (driver dashboard, on dispatch):
- *   import { startDriverLocationSharing, stopDriverLocationSharing } from './live-tracking.js';
+ *   import { startDriverLocationSharing, stopDriverLocationSharing, onDriverPosition } from './live-tracking.js';
  *   startDriverLocationSharing(driverId, orderId);
+ *   const unsubscribe = onDriverPosition((coords) => { ... });  // for the driver-side map
  *   // ...later, on proof-of-delivery / order completion:
  *   stopDriverLocationSharing(driverId);
  *
@@ -27,6 +29,7 @@
  *   import { initLiveTrackingPreview } from './live-tracking.js';
  *   const tracker = await initLiveTrackingPreview(document.getElementById('track-slot'), {
  *     driverId: order.driverId,
+ *     orderId: order.id,          // scopes the preview to this specific order
  *     clientLat: order.delivery.address.lat,
  *     clientLng: order.delivery.address.lng,
  *   });
@@ -43,6 +46,30 @@ const MIN_MOVE_METERS = 10;       // ...but skip the write if the driver hasn't 
 const LEAFLET_CSS = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
 const LEAFLET_JS = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
 
+// ---------------------------------------------------------------------------
+// GPS position listeners — allow other components (e.g. driver-map.js) to
+// receive the same readings instead of starting a second watchPosition.
+// ---------------------------------------------------------------------------
+const positionListeners = new Set();
+
+export function onDriverPosition(callback) {
+  positionListeners.add(callback);
+  return () => positionListeners.delete(callback);
+}
+
+function emitPosition(coords) {
+  positionListeners.forEach((cb) => {
+    try {
+      cb(coords);
+    } catch (e) {
+      console.error('driver position listener failed:', e);
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Leaflet loader (used only by the client-side preview map)
+// ---------------------------------------------------------------------------
 let leafletLoadPromise = null;
 function loadLeaflet() {
   if (window.L) return Promise.resolve(window.L);
@@ -83,17 +110,34 @@ let lastWrite = { pos: null, time: 0 };
 
 export function startDriverLocationSharing(driverId, orderId) {
   if (!navigator.geolocation) return;
+
+  // Already running for this driver? Just update the order id and bail.
+  if (watchId != null) {
+    const db = getDatabase();
+    update(ref(db, `driverLocations/${driverId}`), { activeOrderId: orderId });
+    return;
+  }
+
   const db = getDatabase();
   const locRef = ref(db, `driverLocations/${driverId}`);
 
-  // if the driver's connection drops mid-delivery, stop presenting them as
-  // actively tracked rather than leaving a stale pin on the client's map
+  // If the driver's connection drops mid-delivery, stop presenting them as
+  // actively tracked rather than leaving a stale pin on the client's map.
   onDisconnect(locRef).update({ activeOrderId: null });
 
   watchId = navigator.geolocation.watchPosition(
     (pos) => {
       const now = Date.now();
       const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+
+      // Always let UI listeners know — the driver map should move even if
+      // we're skipping the RTDB write because they haven't moved enough.
+     // In live-tracking.js, inside the GPS success handler:
+        emitPosition(
+          { lat: coords.lat, lng: coords.lng },
+          { heading: pos.coords.heading, speed: pos.coords.speed }
+        );
+
       const movedEnough = !lastWrite.pos || haversineMeters(lastWrite.pos, coords) >= MIN_MOVE_METERS;
       const enoughTimePassed = now - lastWrite.time >= WRITE_INTERVAL_MS;
 
@@ -119,6 +163,8 @@ export function stopDriverLocationSharing(driverId) {
     navigator.geolocation.clearWatch(watchId);
     watchId = null;
   }
+  lastWrite = { pos: null, time: 0 };
+
   const db = getDatabase();
   update(ref(db, `driverLocations/${driverId}`), { activeOrderId: null });
 }
@@ -192,11 +238,14 @@ function clientIcon(L) {
  * @param {HTMLElement} container
  * @param {Object} opts
  * @param {string} opts.driverId
+ * @param {string} [opts.orderId]   — scopes the preview to a specific order;
+ *                                    driver updates for other active orders
+ *                                    are ignored.
  * @param {number} opts.clientLat
  * @param {number} opts.clientLng
  * @returns {Promise<{ destroy: () => void }>}
  */
-export async function initLiveTrackingPreview(container, { driverId, clientLat, clientLng }) {
+export async function initLiveTrackingPreview(container, { driverId, orderId, clientLat, clientLng }) {
   const L = await loadLeaflet();
   injectGlowStyles();
   const db = getDatabase();
@@ -220,6 +269,17 @@ export async function initLiveTrackingPreview(container, { driverId, clientLat, 
   const locRef = ref(db, `driverLocations/${driverId}`);
   const unsubscribe = onValue(locRef, (snap) => {
     const data = snap.val();
+
+    // Ignore updates for other orders this driver might be running —
+    // otherwise a stale client page could show a driver delivering to
+    // someone else once the original order completes.
+    if (data && orderId && data.activeOrderId && data.activeOrderId !== orderId) {
+      statusText.textContent = 'Waiting for driver location…';
+      statusDot.classList.remove('bg-emerald-400', 'bg-amber-400');
+      statusDot.classList.add('bg-white/30');
+      return;
+    }
+
     if (!data || data.lat == null || data.lng == null) {
       statusText.textContent = 'Waiting for driver location…';
       statusDot.classList.remove('bg-emerald-400', 'bg-amber-400');
@@ -238,14 +298,14 @@ export async function initLiveTrackingPreview(container, { driverId, clientLat, 
       const bounds = L.latLngBounds([[pos.lat, pos.lng], [clientLat, clientLng]]);
       map.fitBounds(bounds, { padding: [30, 30], maxZoom: 16 });
     } else {
-      // glide instead of jump — CSS transition on the marker's own element
+      // Glide instead of jump — CSS transition on the marker's own element
       if (driverMarker._icon) driverMarker._icon.style.transition = 'transform 1s linear';
       driverMarker.setLatLng([pos.lat, pos.lng]);
     }
     lastDriverPos = pos;
   });
 
-  // glowing CTA appears once this card has scrolled ~60% into view
+  // Glowing CTA appears once this card has scrolled ~60% into view
   const observer = new IntersectionObserver(
     ([entry]) => {
       const show = entry.isIntersecting && entry.intersectionRatio >= 0.6;

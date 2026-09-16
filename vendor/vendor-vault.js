@@ -86,6 +86,8 @@ export async function initVault() {
 
   injectUpgradeModalStyles();
   bindStaticListeners();
+  injectPayoutHistoryButton();
+
 
   // Plans — critical, must succeed.
   const [currentPlan, plansList] = await Promise.all([
@@ -96,17 +98,23 @@ export async function initVault() {
   state.availablePlans = plansList;
   renderPlan();
 
-  // Firebase bits — non-critical, fail soft.
+
+
+  // Payout destination from Django (source of truth for money).
   try {
-    const [payoutDoc, vendorDoc] = await Promise.all([
-      getDoc(doc(db, "vendorsPaymentInformation", vendorId)),
-      getDoc(doc(db, "vendors", vendorId)),
-    ]);
-    state.payout = payoutDoc.exists() ? payoutDoc.data() : null;
-    state.vendorPhone = vendorDoc.exists() ? (vendorDoc.data().phone || null) : null;
+    const payout = await fetchPayoutDestination();
+    state.payout = payout;
     renderPayoutDestination();
   } catch (e) {
-    console.error("firebase reads:", e);
+    console.error("payout fetch failed:", e);
+  }
+
+  // Vendor phone — still from Firebase (used for the plan-upgrade phone prefill).
+  try {
+    const vendorDoc = await getDoc(doc(db, "vendors", vendorId));
+    state.vendorPhone = vendorDoc.exists() ? (vendorDoc.data().phone || null) : null;
+  } catch (e) {
+    console.error("vendor phone fetch failed:", e);
   }
 
   // Vault summary — separate app, not built yet. Fail soft.
@@ -176,6 +184,16 @@ async function fetchPaymentStatus(transactionReference) {
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Payment status failed: ${res.status}`);
   return res.json();
+}
+
+async function fetchPayoutDestination() {
+  const idToken = await auth.currentUser.getIdToken();
+  const res = await fetch(`${API_BASE}/payout-destination`, {
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+  if (!res.ok) throw new Error(`Payout fetch failed: ${res.status}`);
+  const data = await res.json();
+  return data.destination || null;
 }
 
 async function checkPendingPayment() {
@@ -1040,6 +1058,9 @@ function onPayoutContinue() {
   document.getElementById("payout-step-verify").classList.remove("hidden");
   document.getElementById("payout-verify-error").classList.add("hidden");
   document.getElementById("payout-verify-password").value = "";
+
+  validatePayoutVerifyStep();
+
 }
 
 function onPayoutBack() {
@@ -1059,9 +1080,11 @@ async function handlePayoutSave() {
   errorEl.classList.add("hidden");
 
   try {
+    // Re-verify identity before touching where money goes.
     const credential = EmailAuthProvider.credential(auth.currentUser.email, password);
     await reauthenticateWithCredential(auth.currentUser, credential);
 
+    // Django is the source of truth — no Firestore write here.
     const idToken = await auth.currentUser.getIdToken();
     const res = await fetch(`${API_BASE}/payout-destination`, {
       method: "POST",
@@ -1071,17 +1094,21 @@ async function handlePayoutSave() {
       },
       body: JSON.stringify(pendingPayoutSelection),
     });
-    if (!res.ok) throw new Error(`Payout update failed: ${res.status}`);
 
-    await setDoc(doc(db, "vendorsPaymentInformation", vendorId), {
-      ...pendingPayoutSelection,
-      updatedAt: serverTimestamp(),
-    });
+    const data = await res.json().catch(() => ({}));
 
-    state.payout = pendingPayoutSelection;
+    if (!res.ok) {
+      errorEl.classList.remove("hidden");
+      errorEl.textContent = data.message || "Could not save. Please try again.";
+      return;
+    }
+
+    // Server-normalized values are the truth.
+    state.payout = data.destination || pendingPayoutSelection;
     renderPayoutDestination();
-    window.showNotif?.("Payout destination updated.", "success");
+    window.showNotif?.({ type: "success", title: "Saved", message: "Payout destination updated." });
     closePayoutModal();
+
   } catch (err) {
     console.error(err);
     errorEl.classList.remove("hidden");
@@ -1093,6 +1120,193 @@ async function handlePayoutSave() {
     saveBtn.disabled = false;
     saveBtn.textContent = "Confirm & Save";
   }
+}
+
+
+// -------------------------------------------------------------------------
+// Payout destination history — button + modal (built dynamically)
+// -------------------------------------------------------------------------
+
+function injectPayoutHistoryButton() {
+  if (document.getElementById("vault-payout-history-btn")) return;
+
+  const changeBtn = document.getElementById("vault-edit-payout-btn");
+  if (!changeBtn || !changeBtn.parentElement) return;
+
+  const btn = document.createElement("button");
+  btn.id = "vault-payout-history-btn";
+  btn.className =
+    "text-xs px-4 py-2 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 hover:text-white transition font-medium ml-2";
+  btn.textContent = "History";
+  btn.addEventListener("click", openPayoutHistoryModal);
+
+  // Insert right after the "Change" button
+  changeBtn.parentElement.insertBefore(btn, changeBtn.nextSibling);
+}
+
+function ensurePayoutHistoryModal() {
+  if (document.getElementById("payout-history-overlay")) return;
+
+  const overlay = document.createElement("div");
+  overlay.id = "payout-history-overlay";
+  overlay.className =
+    "fixed inset-0 z-[80] bg-black/60 backdrop-blur-md hidden opacity-0 transition-opacity duration-300 flex items-end sm:items-center justify-center";
+
+  const panel = document.createElement("div");
+  panel.id = "payout-history-panel";
+  panel.className =
+    "w-full sm:max-w-md bg-[#0f1115] border border-white/5 sm:rounded-[2rem] rounded-t-3xl p-6 md:p-8 " +
+    "translate-y-full sm:translate-y-0 sm:scale-95 transition-all duration-300 " +
+    "max-h-[88vh] overflow-y-auto shadow-2xl";
+
+  panel.innerHTML = `
+    <div class="flex items-start justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-extrabold text-white tracking-tight">Payout History</h2>
+        <p class="text-slate-500 text-xs mt-1 font-medium">Every change to your payout destination.</p>
+      </div>
+      <button class="payout-history-close-btn w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition text-white/60 hover:text-white shrink-0">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="payout-history-body"></div>
+  `;
+
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closePayoutHistoryModal();
+  });
+
+  panel.querySelectorAll(".payout-history-close-btn").forEach((b) => {
+    b.addEventListener("click", closePayoutHistoryModal);
+  });
+}
+
+function openPayoutHistoryModal() {
+  ensurePayoutHistoryModal();
+
+  const overlay = document.getElementById("payout-history-overlay");
+  const panel = document.getElementById("payout-history-panel");
+  const body = document.getElementById("payout-history-body");
+
+  body.innerHTML = `
+    <div class="flex justify-center py-12">
+      <div class="w-8 h-8 border-2 border-white/10 border-t-indigo-500 rounded-full animate-spin"></div>
+    </div>`;
+
+  overlay.classList.remove("hidden");
+  requestAnimationFrame(() => {
+    overlay.classList.remove("opacity-0");
+    panel.classList.remove("translate-y-full", "sm:scale-95");
+  });
+
+  fetchPayoutHistoryAndRender();
+}
+
+function closePayoutHistoryModal() {
+  const overlay = document.getElementById("payout-history-overlay");
+  const panel = document.getElementById("payout-history-panel");
+  if (!overlay || !panel) return;
+
+  overlay.classList.add("opacity-0");
+  panel.classList.add("translate-y-full", "sm:scale-95");
+  setTimeout(() => overlay.classList.add("hidden"), 300);
+}
+
+async function fetchPayoutHistoryAndRender() {
+  const body = document.getElementById("payout-history-body");
+  if (!body) return;
+
+  try {
+    const idToken = await auth.currentUser.getIdToken();
+    const res = await fetch(`${API_BASE}/payout-destination/history`, {
+      headers: { Authorization: `Bearer ${idToken}` },
+    });
+    if (!res.ok) throw new Error(`History fetch failed: ${res.status}`);
+
+    const data = await res.json();
+    const changes = data.changes || [];
+
+    if (changes.length === 0) {
+      body.innerHTML = `
+        <div class="text-center py-12 text-white/25">
+          <p class="text-4xl mb-3">📜</p>
+          <p class="text-sm">No changes yet.</p>
+        </div>`;
+      return;
+    }
+
+    body.innerHTML = `
+      <div class="space-y-3">
+        ${changes.map(renderPayoutHistoryRow).join("")}
+      </div>`;
+  } catch (err) {
+    console.error("Payout history fetch failed:", err);
+    body.innerHTML = `
+      <div class="rounded-xl bg-red-500/10 border border-red-500/20 p-4 text-xs text-red-300 text-center">
+        Could not load history. Try again.
+      </div>`;
+  }
+}
+
+function renderPayoutHistoryRow(change) {
+  const { old: oldV, new: newV, changedAt } = change;
+
+  const fmtDest = (d) => {
+    if (!d) return "—";
+    const label = d.type === "till" ? "Till" : "Paybill";
+    const acct = d.accountNumber ? ` · ${escapeHtml(d.accountNumber)}` : "";
+    return `${label} ${escapeHtml(d.number)}${acct}`;
+  };
+
+  const isFirstSet = !oldV;
+
+  const dateStr = (() => {
+    try {
+      const d = new Date(changedAt);
+      return d.toLocaleString("en-KE", {
+        day: "numeric", month: "short", year: "numeric",
+        hour: "2-digit", minute: "2-digit",
+      });
+    } catch { return ""; }
+  })();
+
+  return `
+    <div class="rounded-xl bg-white/[0.03] border border-white/5 p-3">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-[10px] font-bold uppercase tracking-widest ${
+          isFirstSet ? "text-emerald-400" : "text-indigo-300"
+        }">
+          ${isFirstSet ? "First set" : "Changed"}
+        </span>
+        <span class="text-[10px] text-white/30">${escapeHtml(dateStr)}</span>
+      </div>
+
+      ${!isFirstSet ? `
+        <div class="flex items-center gap-2 text-xs mb-1">
+          <span class="text-white/35 line-through">${fmtDest(oldV)}</span>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="text-emerald-300">→</span>
+          <span class="text-white/80 font-semibold">${fmtDest(newV)}</span>
+        </div>
+      ` : `
+        <div class="flex items-center gap-2 text-xs">
+          <span class="text-white/80 font-semibold">${fmtDest(newV)}</span>
+        </div>
+      `}
+    </div>
+  `;
+}
+
+function validatePayoutVerifyStep() {
+  const password = document.getElementById("payout-verify-password").value;
+  const btn = document.getElementById("payout-save-btn");
+  btn.disabled = !password;
+  btn.classList.toggle("opacity-40", !password);
+  btn.classList.toggle("cursor-not-allowed", !password);
 }
 
 // -------------------------------------------------------------------------
@@ -1143,6 +1357,10 @@ function bindStaticListeners() {
   document
     .getElementById("payout-number-input")
     .addEventListener("input", validatePayoutDetailsStep);
+  document
+  .getElementById("payout-verify-password")
+  .addEventListener("input", validatePayoutVerifyStep);
+
   document
     .getElementById("payout-account-input")
     .addEventListener("input", validatePayoutDetailsStep);

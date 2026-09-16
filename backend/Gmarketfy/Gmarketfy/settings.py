@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'vendors_and_transactions',
     'vendors_plans',
+    "vendor_wallet",
     "corsheaders"
 ]
 
@@ -153,3 +154,18 @@ INITIATOR_NAME = config('INITIATOR_NAME')
 INITIATOR_PASSWORD = config('MPESA_INITIATOR_PASSWORD')
 CALLBACK_URL = config('CALLBACK_URL')
 PLAN_PAYMENT_CALLBACK_URL = config('PLAN_PAYMENT_CALLBACK_URL')
+DARAJA_OAUTH_URL = config('DARAJA_OAUTH_URL')
+DARAJA_STK_URL = config('DARAJA_STK_URL')   
+
+
+
+# --- B2C / withdrawals ---
+DARAJA_B2C_SHORTCODE = config('DARAJA_B2C_SHORTCODE', default='600192')
+DARAJA_INITIATOR_NAME = config('DARAJA_INITIATOR_NAME', default='testapi')
+DARAJA_SECURITY_CREDENTIAL = config('DARAJA_SECURITY_CREDENTIAL', default='')
+DARAJA_B2C_URL = config('DARAJA_B2C_URL', default='https://sandbox.safaricom.co.ke/mpesa/b2c/v1/paymentrequest')
+B2C_RESULT_URL = config('B2C_RESULT_URL', default='')
+B2C_TIMEOUT_URL = config('B2C_TIMEOUT_URL', default='')
+
+# Withdrawal rules
+WITHDRAWAL_MIN_AMOUNT = config('WITHDRAWAL_MIN_AMOUNT', default='10')

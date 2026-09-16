@@ -13,6 +13,7 @@ PLANS = [
             "instant_min": 5000,
             "safaricom_share_label": "You pay full + margin",
             "payout_schedule": "Weekly batch payout",
+            "withdrawal_fee_pct": 2.5,
         },
     },
     {
@@ -25,6 +26,7 @@ PLANS = [
             "instant_min": 3000,
             "safaricom_share_label": "~70% you / 30% us",
             "payout_schedule": "Payout every 2–3 days",
+            "withdrawal_fee_pct": 1.5,
         },
     },
     {
@@ -37,6 +39,7 @@ PLANS = [
             "instant_min": 1500,
             "safaricom_share_label": "~40% you / 60% us",
             "payout_schedule": "Daily payout",
+            "withdrawal_fee_pct": 1.0,
         },
     },
     {
@@ -49,6 +52,7 @@ PLANS = [
             "instant_min": 500,
             "safaricom_share_label": "Flat KSh 10–20",
             "payout_schedule": "Instant, on-demand",
+            "withdrawal_fee_pct": 0.5,
         },
     },
 ]

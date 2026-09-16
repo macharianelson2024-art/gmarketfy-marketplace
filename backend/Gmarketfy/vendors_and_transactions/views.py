@@ -11,6 +11,7 @@ from django.db import transaction as db_transaction
 from django.http import JsonResponse, response
 from django.views.decorators.csrf import csrf_exempt
 from firebase_admin import auth
+from vendor_wallet.services import credit_order_payment
 
 
 
@@ -30,7 +31,11 @@ from Gmarketfy.settings import (
     INITIATOR_NAME as initiator_name,
     SECURITY_CREDENTIAL as security_credential,
     db as Gmarketfy_db,
+    DARAJA_OAUTH_URL,
+    DARAJA_STK_URL,
 )
+
+from vendors_plans.services.daraja import get_access_token
 
 from .models import Transactions
 #from orders.services import create_ordering_history_entry
@@ -44,9 +49,10 @@ REQUEST_TIMEOUT = 10  # seconds, for calls to Safaricom
 # Daraja helpers
 # ---------------------------------------------------------------------------
 
+
 def get_access_token():
-    """Returns an access token string, or None if the request failed."""
-    url = "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
+    #Returns an access token string, or None if the request failed.
+    url = DARAJA_OAUTH_URL
     try:
         response = requests.get(
             url,
@@ -105,7 +111,7 @@ def build_payment_label(category, quantity, max_length):
 
 
 def send_stk_push(payload, access_token):
-    url = "https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
+    url = DARAJA_STK_URL
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
@@ -612,6 +618,17 @@ def payments_callback(request):
 
     if txn is None or txn.status != "Completed":
         return JsonResponse(ack, status=200)
+    
+
+    # --- Credit the vendor's wallet -------------------------------------
+    try:
+        credit_order_payment(txn)
+    except Exception:
+        logger.exception(
+            "payments_callback: wallet credit failed for txn %s",
+            txn.transaction_reference,
+        )
+
 
     # --- Step 1: sync payment onto the Firestore order doc -------------
     # _apply_payment_to_order is expected to write paymentStatus: "paid"
@@ -657,6 +674,8 @@ def payments_callback(request):
         )
         txn.firestore_synced = False
         txn.save(update_fields=["firestore_synced"])
+        
+        
         return JsonResponse(ack, status=200)
     return JsonResponse(ack, status=200)
     
@@ -865,3 +884,44 @@ def b2c_timeout_callback(request):
     except Exception:
         logger.exception("Failed to parse B2C Timeout callback body")
     return JsonResponse(ack, status=200)
+
+# ---------------------------------------------------------------------------
+# payment_status_view — poll a specific order payment
+# ---------------------------------------------------------------------------
+
+@csrf_exempt
+@api_view(["GET"])
+def payment_status_view(request, transaction_reference):
+    """
+    Returns the current state of a single order payment. Used by the client
+    to poll after initiating an STK push.
+
+    Only returns payments belonging to the authenticated client, so a random
+    reference can't be used to spy on someone else's payment.
+    """
+    authentication = authenticate_firebase_user(request)
+    if not authentication["authenticated"]:
+        return Response({"message": authentication["message"]}, status=401)
+
+    client_id = authentication["user"]["uid"]
+
+    txn = (
+        Transactions.objects
+        .filter(transaction_reference=transaction_reference, client_id=client_id)
+        .first()
+    )
+    if txn is None:
+        return Response({"message": "Payment not found"}, status=404)
+
+    return Response(
+        {
+            "transaction_reference": txn.transaction_reference,
+            "order_id": txn.order_id,
+            "status": txn.status,
+            "mpesa_receipt_number": txn.mpesa_receipt_number,
+            "result_description": txn.result_description,
+            "subtotal": str(txn.subtotal) if txn.subtotal is not None else None,
+            "created_at": txn.created_at,
+        },
+        status=200,
+    )

@@ -30,6 +30,17 @@ import {
 
 import { firebaseConfig } from './firebase-config.js';
 
+import {
+  initDriverMap,
+  setDriverMapOrders,
+  recenterDriverMap,
+} from "./driver-map.js";
+
+import {
+  startDriverLocationSharing,
+  stopDriverLocationSharing,
+} from "./live-tracking.js";
+
 // ============================
 // STATE
 // ============================
@@ -40,6 +51,40 @@ let activeOrdersUnsub = null;
 let isSubmitting = false;
 let isDashboardVisible = true;
 const productCache = new Map();
+
+// Location-sharing runtime — auto-start when orders > 0, stop 60s after
+let _sharingActive = false;
+let _sharingStopTimer = null;
+
+function syncLocationSharing(orders) {
+  if (!driverData?.id) return;
+
+  const shouldShare = orders.length > 0;
+
+  if (shouldShare) {
+    if (_sharingStopTimer) {
+      clearTimeout(_sharingStopTimer);
+      _sharingStopTimer = null;
+    }
+    if (!_sharingActive) {
+      // Which order to advertise as "active"? Prefer one already out for
+      // delivery, else fall back to the first assigned order.
+      const primary =
+        orders.find((o) => (o.status || "").toLowerCase() === "out for delivery") ||
+        orders[0];
+      startDriverLocationSharing(driverData.id, primary.id);
+      _sharingActive = true;
+    }
+  } else {
+    if (_sharingActive && !_sharingStopTimer) {
+      _sharingStopTimer = setTimeout(() => {
+        stopDriverLocationSharing(driverData.id);
+        _sharingActive = false;
+        _sharingStopTimer = null;
+      }, 60000);
+    }
+  }
+}
 
 // DOM refs
 const $ = (id) => document.getElementById(id);
@@ -509,7 +554,12 @@ window.hideLoading = hideLoading;
 // ============================
 function setupNavigation() {
   const navItems = document.querySelectorAll('.nav-item');
-  const tabs = { active: $('tab-active'), history: $('tab-history'), profile: $('tab-profile') };
+  const tabs = {
+    active: $('tab-active'),
+    history: $('tab-history'),
+    profile: $('tab-profile'),
+    map: $('tab-map'),
+  };
 
   navItems.forEach(item => {
     item.addEventListener('click', () => {
@@ -518,19 +568,52 @@ function setupNavigation() {
       navItems.forEach(n => n.classList.remove('active'));
       item.classList.add('active');
       const tab = item.dataset.tab;
-      Object.keys(tabs).forEach(key => tabs[key].classList.toggle('active', key === tab));
+      Object.keys(tabs).forEach(key => tabs[key]?.classList.toggle('active', key === tab));
+
       if (tab === 'history' && allHistory.length === 0) loadHistory();
+
+      if (tab === 'map') {
+        initDriverMap('driver-map-canvas').then(() => {
+          // Leaflet can't measure the container while it's hidden — force a
+          // redraw + recenter after the tab becomes visible.
+          setTimeout(() => {
+            window.dispatchEvent(new Event('resize'));
+            recenterDriverMap();
+          }, 50);
+        });
+      }
     });
   });
 }
 
-// ============================
-// AUTH CHECK
-// ============================
 async function checkAuth() {
   return new Promise((resolve) => {
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) { window.location.href = './driver.html'; return; }
+    let resolved = false;
+    let settleTimer = null;
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      // Firebase fires null *before* it restores the persisted session.
+      // Wait ~1s before treating null as a real logged-out state.
+      if (!user) {
+        if (resolved) return;
+        if (!settleTimer) {
+          settleTimer = setTimeout(() => {
+            if (resolved) return;
+            resolved = true;
+            unsubscribe();
+            window.location.href = './driver.html';
+          }, 1000);
+        }
+        return;
+      }
+
+      // User present — cancel the pending "logged out" redirect
+      if (settleTimer) {
+        clearTimeout(settleTimer);
+        settleTimer = null;
+      }
+      if (resolved) return;
+      resolved = true;
 
       try {
         const docSnap = await getDoc(doc(db, 'drivers', user.uid));
@@ -548,10 +631,14 @@ async function checkAuth() {
         }
 
         if (driverData.status === 'not-active') {
-          await updateDoc(doc(db, 'drivers', user.uid), { status: 'free', updatedAt: serverTimestamp() });
+          await updateDoc(doc(db, 'drivers', user.uid), {
+            status: 'free',
+            updatedAt: serverTimestamp(),
+          });
           setDriverData({ ...driverData, status: 'free' });
         }
 
+        unsubscribe();
         resolve(driverData);
       } catch (err) {
         console.error('Auth check failed:', err);
@@ -615,6 +702,14 @@ function listenToActiveOrders() {
     renderActiveOrders();
     updateStats();
     checkForNewOrders(snap);
+
+    // Keep the map + location sharing in sync with the current orders list
+    setDriverMapOrders(activeOrders);
+
+    const emptyEl = $('map-empty-overlay');
+    if (emptyEl) emptyEl.classList.toggle('hidden', activeOrders.length > 0);
+
+    syncLocationSharing(activeOrders);
   }, (err) => {
     console.error('Active orders listener error:', err);
     showToast({ type: 'error', title: 'Connection Error', message: 'Failed to load orders. Reconnecting...' });
@@ -986,17 +1081,16 @@ async function submitProof() {
     batch.update(doc(db, 'orders', currentProofOrder.id), {
       status: finalStatus,
       proofImage: compressed,
-      vendorNote: caption,     
+      vendorNote: caption,
       updatedAt: serverTimestamp(),
-      completedAt: serverTimestamp(),  
-
+      completedAt: serverTimestamp(),
     });
     batch.set(doc(db, 'proofs', currentProofOrder.id), {
       orderId: currentProofOrder.id,
       image: compressed,
       vendorNote: caption,
       driverId: driverData.id,
-      createdAt: serverTimestamp(),   // ⬅ required by the rule, was missing
+      createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
     await batch.commit();
@@ -1081,14 +1175,13 @@ async function handleLogout() {
   try {
     showLoading('Logging out...');
     await signOut(auth);
-    window.location.href =  "./driver.html"
+    window.location.href = "./driver.html";
   } catch (err) {
     console.error('Logout failed:', err);
     hideLoading();
     showToast({ type: 'error', title: 'Logout Failed', message: 'Please try again' });
   }
 }
-
 
 // ============================
 // INIT
@@ -1098,7 +1191,7 @@ async function initDashboard() {
     showLoading('Loading dashboard...');
 
     await checkAuth();
-    if (!driverData) { window.location.href =  "./driver.html"; return; }
+    if (!driverData) { window.location.href = "./driver.html"; return; }
 
     updateHeaderStatus(driverData.status || 'free');
     setupNavigation();
@@ -1107,6 +1200,10 @@ async function initDashboard() {
     updateStats();
 
     $('logout-btn').addEventListener('click', handleLogout);
+
+    // Map tab — recenter button
+    const recenterBtn = $('map-recenter-btn');
+    if (recenterBtn) recenterBtn.addEventListener('click', recenterDriverMap);
 
     const searchInput = $('history-search');
     if (searchInput) {
@@ -1147,5 +1244,14 @@ document.addEventListener('visibilitychange', () => {
   isDashboardVisible = !document.hidden;
   if (isDashboardVisible && !activeOrdersUnsub && driverData) {
     listenToActiveOrders();
+  }
+});
+
+// Stop location sharing cleanly if the driver closes the tab. The RTDB
+// onDisconnect() handles crashes / connection loss; this covers the
+// graceful case so no stale pin lingers for 60s.
+window.addEventListener('beforeunload', () => {
+  if (_sharingActive && driverData?.id) {
+    stopDriverLocationSharing(driverData.id);
   }
 });

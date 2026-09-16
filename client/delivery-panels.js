@@ -664,7 +664,14 @@ function getRelevantDeliveryInfo(order, orderId) {
 
   const blocks = [];
 
-  if (order.status === "assigned" || order.status === "out for delivery") {
+  // Driver row: show while a driver is associated with a live delivery
+  const DRIVER_VISIBLE_STATUSES = [
+    "assigned",
+    "out for delivery",
+    "proof uploaded",
+    "delivered",
+  ];
+  if (DRIVER_VISIBLE_STATUSES.includes(order.status) && order.driverId) {
     blocks.push(`
       <div class="dp-action-row dp-action-driver"
            data-driver-id="${order.driverId}"
@@ -678,18 +685,14 @@ function getRelevantDeliveryInfo(order, orderId) {
     `);
   }
 
-  if (order.status === "proof uploaded") {
+  // Proof row: show from the moment proof exists through completion
+  const PROOF_VISIBLE_STATUSES = [
+    "proof uploaded",
+    "delivered",
+    "paid & delivered",
+  ];
+  if (PROOF_VISIBLE_STATUSES.includes(order.status)) {
     blocks.push(`
-      <div class="dp-action-row dp-action-driver"
-           data-driver-id="${order.driverId}"
-           onclick="openDriverPanel('${order.driverId}')">
-        <div class="dp-action-left">
-          <div class="dp-action-icon dp-icon-driver">🚚</div>
-          <span class="dp-action-label dp-label-driver">View delivery personnel</span>
-        </div>
-        <span class="dp-action-chevron">›</span>
-      </div>
-
       <div class="dp-action-row dp-action-proof"
            data-proof-id="${orderId}"
            onclick="openProofPanel('${orderId}')">
@@ -702,7 +705,7 @@ function getRelevantDeliveryInfo(order, orderId) {
     `);
   }
 
-  // action row styles injected inline (only once)
+  // Inject action row styles once
   if (!document.getElementById("dp-action-styles")) {
     document.head.insertAdjacentHTML("beforeend", `
       <style id="dp-action-styles">
@@ -720,7 +723,6 @@ function getRelevantDeliveryInfo(order, orderId) {
           margin-bottom: 8px;
         }
         .dp-action-row:active { transform: scale(0.98); }
-
         .dp-action-driver {
           background: rgba(99,102,241,0.07);
           border-color: rgba(99,102,241,0.15);

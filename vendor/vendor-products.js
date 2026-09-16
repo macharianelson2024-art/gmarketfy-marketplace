@@ -205,14 +205,39 @@ function setupCustomDropdown(wrapperId, valId, listId, itemSelector) {
     });
   });
 
-  document.addEventListener("click", () => {
-    listEl.classList.remove("active");
-  });
+      document.addEventListener("click", (e) => {
+          if (!wrapper.contains(e.target)) {
+            listEl.classList.remove("active");
+          }
+        });
 }
 
 // Init dropdowns
 setupCustomDropdown("pf-currency-wrapper", "pf-currency-val", "pf-currency-list", ".cur-opt");
 setupCustomDropdown("pf-category-wrapper", "pf-category-val", "pf-category-list", ".cat_opt");
+// =========================
+// CATEGORY — custom "type your own" input
+// =========================
+const categoryList = document.getElementById("pf-category-list");
+const categoryVal = document.getElementById("pf-category-val");
+const categoryCustomInput = document.getElementById("pf-category-custom-input");
+
+// clicking/typing inside the input shouldn't bubble up and trigger
+// the document-level "close all open dropdowns" listener
+categoryCustomInput?.addEventListener("click", (e) => e.stopPropagation());
+
+categoryCustomInput?.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  e.preventDefault(); // stop it submitting the product form
+  const val = categoryCustomInput.value.trim();
+  if (!val) return;
+
+  categoryVal.textContent = val;
+  categoryVal.setAttribute("data-selected", val);
+  categoryList.classList.remove("active");
+  categoryCustomInput.value = "";
+});
+
 
 // =========================
 // IMAGE UPLOAD — CUSTOM
@@ -347,9 +372,12 @@ function openProductModal(product = null) {
     categoryVal.textContent = product?.category || "Digital Art";
     categoryVal.setAttribute("data-selected", product?.category || "Digital Art");
   }
+  const categoryCustomInput = document.getElementById("pf-category-custom-input");
+  if (categoryCustomInput) categoryCustomInput.value = "";
 
   // Reset image
   currentImageData = null;
+
   imageInput.value = "";
   removeBtn.classList.add("hidden");
 

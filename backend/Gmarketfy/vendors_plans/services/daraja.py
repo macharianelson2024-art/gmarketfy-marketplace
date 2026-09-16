@@ -20,12 +20,13 @@ _CALLBACK_URL    = settings.PLAN_PAYMENT_CALLBACK_URL
 
 # Match the URL environment to the credentials. Since .env is sandbox right
 # now, these point at sandbox. Flip both when you go live.
-DARAJA_OAUTH_URL = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
-DARAJA_STK_URL   = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
+DARAJA_OAUTH_URL = settings.DARAJA_OAUTH_URL
+DARAJA_STK_URL   = settings.DARAJA_STK_URL
 
 
 def plans_callback_url():
-    return f"{_CALLBACK_URL}/api/vendors/plans/callback/"
+    return f"{_CALLBACK_URL}api/vendors/plans/callback/"
+
 
 
 def get_access_token():

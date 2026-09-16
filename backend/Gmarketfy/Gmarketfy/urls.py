@@ -24,4 +24,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('' , include('vendors_and_transactions.urls')),
     path('api/vendors/' , include('vendors_plans.urls')),
+    path("api/vault/", include("vendor_wallet.urls")),
 ]

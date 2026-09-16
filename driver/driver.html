@@ -1,9 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-<title>Gmarketfy — Driver Login</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Driver Login — Gmarketfy</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="./tailwind.js"></script>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
   <!-- FAVICON SETUP -->
   <link rel="icon" href="/favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
@@ -12,127 +20,281 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
   <meta name="theme-color" content="#000000" />
+
+  <style>
+    /* ————— Base ————— */
+    html, body { height: 100%; }
+    body {
+      background: #030406;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Ambient background glows */
+    body::before,
+    body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(90px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::before {
+      width: 400px; height: 400px;
+      background: rgba(99, 102, 241, 0.18);
+      top: -120px; left: -120px;
+    }
+    body::after {
+      width: 350px; height: 350px;
+      background: rgba(139, 92, 246, 0.12);
+      bottom: -120px; right: -120px;
+    }
+
+    /* ————— Glass card ————— */
+    .glass {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    /* ————— Inputs ————— */
+    .auth-input {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 14px 16px 14px 44px;
+      font-size: 15px;
+      color: white;
+      outline: none;
+      transition: border-color 0.18s, background 0.18s;
+    }
+    .auth-input::placeholder { color: rgba(255, 255, 255, 0.25); }
+    .auth-input:focus {
+      border-color: rgba(99, 102, 241, 0.6);
+      background: rgba(99, 102, 241, 0.04);
+    }
+
+    /* ————— Button ————— */
+    .auth-btn {
+      width: 100%;
+      height: 52px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 14px;
+      color: white;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      box-shadow: 0 10px 30px -8px rgba(99, 102, 241, 0.55);
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .auth-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 34px -8px rgba(99, 102, 241, 0.65);
+    }
+    .auth-btn:active:not(:disabled) {
+      transform: scale(0.985);
+    }
+    .auth-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ————— Spinner ————— */
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.25);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    .spinner.hidden { display: none !important; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ————— Shake on error ————— */
+    .shake {
+      animation: shake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+    @keyframes shake {
+      10%, 90% { transform: translateX(-2px); }
+      20%, 80% { transform: translateX(4px); }
+      30%, 50%, 70% { transform: translateX(-7px); }
+      40%, 60% { transform: translateX(7px); }
+    }
+
+    /* ————— Success checkmark ————— */
+    @keyframes draw-check {
+      to { stroke-dashoffset: 0; }
+    }
+    .check-path {
+      stroke-dasharray: 48;
+      stroke-dashoffset: 48;
+      animation: draw-check 0.55s ease-out 0.1s forwards;
+    }
+
+    /* Hide number input spinners */
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type="number"] { -moz-appearance: textfield; }
+  </style>
 </head>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="./tailwind.js"></script>
-<style>
-  body { background:#0f1115; }
-  @keyframes floatGlow { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(20px,-30px) scale(1.08); } }
-  .glow-orb { animation: floatGlow 9s ease-in-out infinite; }
-  .glow-orb-2 { animation: floatGlow 11s ease-in-out infinite reverse; }
-  @keyframes shakeX { 10%,90% { transform: translateX(-1px); } 20%,80% { transform: translateX(2px); } 30%,50%,70% { transform: translateX(-4px); } 40%,60% { transform: translateX(4px); } }
-  .shake { animation: shakeX 0.5s cubic-bezier(.36,.07,.19,.97) both; }
-  input[type=tel]::-webkit-inner-spin-button { -webkit-appearance:none; }
-  .pin-input { letter-spacing: 0.6em; }
-  .fade-step { transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.22,1,0.36,1); }
-</style>
-</head>
-<body class="min-h-screen w-full relative overflow-hidden flex items-center justify-center px-4">
 
-  <!-- Ambient background -->
-  <div class="fixed inset-0 pointer-events-none overflow-hidden">
-    <div class="glow-orb absolute -top-32 -left-24 w-[420px] h-[420px] rounded-full bg-indigo-600/20 blur-[110px]"></div>
-    <div class="glow-orb-2 absolute -bottom-32 -right-24 w-[420px] h-[420px] rounded-full bg-violet-600/15 blur-[110px]"></div>
-    <div class="absolute inset-0 opacity-[0.03]" style="background-image:radial-gradient(circle,#fff 1px,transparent 1px);background-size:26px 26px;"></div>
-  </div>
+<body class="min-h-screen flex items-center justify-center px-4 py-8">
 
-  <!-- Card -->
-  <div class="relative w-full max-w-sm">
+  <!-- Auth card -->
+  <div id="auth-card" class="glass w-full max-w-sm rounded-3xl p-7 sm:p-8 relative z-10 shadow-2xl shadow-black/40">
 
-    <!-- Brand -->
-    <div class="text-center mb-8">
-      <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-indigo-500/25 to-violet-500/10 border border-indigo-500/20 flex items-center justify-center text-2xl mb-4 shadow-[0_8px_30px_rgba(99,102,241,0.15)]">🚚</div>
-      <h1 class="text-xl font-extrabold text-white tracking-tight">Gmarketfy Driver</h1>
-      <p class="text-white/30 text-xs mt-1.5">Sign in to manage your deliveries</p>
+    <!-- BRAND HEADER -->
+    <div class="text-center mb-7">
+      <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-4">
+        <div class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"></div>
+        <span class="text-[10px] font-bold uppercase tracking-widest text-white/60">Driver Portal</span>
+      </div>
+      <h1 class="text-2xl font-extrabold bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400 bg-clip-text text-transparent tracking-tight">
+        Gmarketfy
+      </h1>
+      <p class="text-xs text-white/40 mt-1.5">Sign in to start delivering</p>
     </div>
 
-    <div id="auth-card"
-      class="bg-[#111318] border border-white/5 rounded-[1.75rem] p-7 shadow-[0_20px_80px_rgba(0,0,0,0.5)] relative overflow-hidden">
-
-      <!-- STEP: LOGIN -->
-      <div id="step-login" class="fade-step space-y-5">
-        <div>
-          <h2 class="text-white font-bold text-base">Log in</h2>
-          <p class="text-white/30 text-xs mt-1">Use the phone number and PIN your vendor gave you</p>
-        </div>
-
-        <form id="login-form" class="space-y-4">
-          <div class="space-y-2">
-            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Phone Number</label>
-            <input id="login-phone" type="tel" inputmode="tel" autocomplete="tel"
-              class="w-full h-13 h-[3.25rem] px-4 bg-white/[0.035] border border-white/10 rounded-2xl text-white text-sm outline-none focus:border-indigo-500/60 focus:bg-white/[0.05] transition placeholder:text-white/20"
-              placeholder="+254 7XX XXX XXX" />
-          </div>
-
-          <div class="space-y-2">
-            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PIN</label>
-            <input id="login-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password"
-              class="pin-input w-full h-[3.25rem] px-4 bg-white/[0.035] border border-white/10 rounded-2xl text-white text-sm text-center outline-none focus:border-indigo-500/60 focus:bg-white/[0.05] transition placeholder:text-white/20 placeholder:tracking-normal"
-              placeholder="••••••" />
-          </div>
-
-          <p id="login-error" class="hidden text-[11px] text-red-400 bg-red-500/8 border border-red-500/15 rounded-xl px-3 py-2.5"></p>
-
-          <button type="submit" id="login-submit-btn"
-            class="w-full h-[3.25rem] bg-white hover:bg-slate-200 text-black font-extrabold rounded-2xl text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-2">
-            <span id="login-submit-text">Log In</span>
-            <svg id="login-spinner" class="hidden w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-          </button>
-        </form>
-
-        <p class="text-center text-[11px] text-white/20 leading-relaxed">Don't have login details? Ask your vendor —<br/>driver accounts are created for you, not self-signed-up.</p>
+    <!-- =====================================================
+         STEP: checking
+    ===================================================== -->
+    <div id="step-checking" class="py-10">
+      <div class="flex flex-col items-center justify-center">
+        <div class="spinner" style="width:28px;height:28px;border-width:3px;"></div>
+        <p class="text-xs text-white/40 mt-4">Checking your session…</p>
       </div>
-
-      <!-- STEP: FIRST-LOGIN PIN RESET -->
-      <div id="step-reset" class="fade-step space-y-5 hidden">
-        <div>
-          <div class="inline-flex items-center gap-1.5 text-[10px] font-bold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded-full mb-3">🔐 First-time login</div>
-          <h2 class="text-white font-bold text-base">Set your own PIN</h2>
-          <p class="text-white/30 text-xs mt-1">For security, replace the temporary PIN your vendor shared with one only you know</p>
-        </div>
-
-        <form id="reset-form" class="space-y-4">
-          <div class="space-y-2">
-            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">New PIN (6 digits)</label>
-            <input id="reset-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"
-              class="pin-input w-full h-[3.25rem] px-4 bg-white/[0.035] border border-white/10 rounded-2xl text-white text-sm text-center outline-none focus:border-indigo-500/60 focus:bg-white/[0.05] transition placeholder:text-white/20 placeholder:tracking-normal"
-              placeholder="••••••" />
-          </div>
-
-          <div class="space-y-2">
-            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Confirm New PIN</label>
-            <input id="reset-pin-confirm" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"
-              class="pin-input w-full h-[3.25rem] px-4 bg-white/[0.035] border border-white/10 rounded-2xl text-white text-sm text-center outline-none focus:border-indigo-500/60 focus:bg-white/[0.05] transition placeholder:text-white/20 placeholder:tracking-normal"
-              placeholder="••••••" />
-          </div>
-
-          <p id="reset-error" class="hidden text-[11px] text-red-400 bg-red-500/8 border border-red-500/15 rounded-xl px-3 py-2.5"></p>
-
-          <button type="submit" id="reset-submit-btn"
-            class="w-full h-[3.25rem] bg-white hover:bg-slate-200 text-black font-extrabold rounded-2xl text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-2">
-            <span id="reset-submit-text">Set PIN &amp; Continue</span>
-            <svg id="reset-spinner" class="hidden w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-          </button>
-        </form>
-      </div>
-
-      <!-- STEP: CHECKING SESSION -->
-      <div id="step-checking" class="py-10 flex flex-col items-center gap-3">
-        <svg class="w-6 h-6 animate-spin text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-        <p class="text-white/30 text-xs">Checking your session…</p>
-      </div>
-
-      <!-- STEP: SUCCESS -->
-      <div id="step-success" class="py-10 flex flex-col items-center gap-3 hidden">
-        <div class="w-12 h-12 rounded-full bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-2xl">✓</div>
-        <p class="text-white/70 text-sm font-semibold">You're in — redirecting…</p>
-      </div>
-
     </div>
 
-    <p class="text-center text-[10px] text-white/15 mt-6">Gmarketfy · Driver Portal</p>
+    <!-- =====================================================
+         STEP: login
+    ===================================================== -->
+    <div id="step-login" class="hidden">
+      <form id="login-form" class="space-y-4" novalidate>
+
+        <!-- Phone -->
+        <div class="relative">
+          <i class="fas fa-phone absolute left-4 top-1/2 -translate-y-1/2 text-white/25 text-sm"></i>
+          <input
+            id="login-phone"
+            type="tel"
+            inputmode="numeric"
+            autocomplete="tel"
+            class="auth-input"
+            placeholder="07XX XXX XXX"
+            required
+          />
+        </div>
+
+        <!-- PIN -->
+        <div class="relative">
+          <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-white/25 text-sm"></i>
+          <input
+            id="login-pin"
+            type="password"
+            inputmode="numeric"
+            autocomplete="current-password"
+            maxlength="6"
+            class="auth-input tracking-[0.4em]"
+            placeholder="6-digit PIN"
+            required
+          />
+        </div>
+
+        <!-- Error -->
+        <p id="login-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/15 rounded-xl px-3 py-2"></p>
+
+        <!-- Submit -->
+        <button id="login-submit-btn" type="submit" class="auth-btn mt-2">
+          <span id="login-submit-text">Log In</span>
+          <span id="login-spinner" class="spinner hidden"></span>
+        </button>
+      </form>
+
+      <p class="text-[11px] text-center text-white/25 mt-5 leading-relaxed">
+        Don't have an account? Contact your vendor to be onboarded as a driver.
+      </p>
+    </div>
+
+    <!-- =====================================================
+         STEP: reset (first login — forced PIN change)
+    ===================================================== -->
+    <div id="step-reset" class="hidden">
+      <div class="mb-5 p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+        <p class="text-xs text-indigo-300 leading-relaxed">
+          <i class="fas fa-shield-halved mr-1"></i>
+          Welcome! Set your own 6-digit PIN to secure your account. You'll use it every time you log in.
+        </p>
+      </div>
+
+      <form id="reset-form" class="space-y-4" novalidate>
+        <!-- New PIN -->
+        <div class="relative">
+          <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-white/25 text-sm"></i>
+          <input
+            id="reset-pin"
+            type="password"
+            inputmode="numeric"
+            maxlength="6"
+            class="auth-input tracking-[0.4em]"
+            placeholder="New 6-digit PIN"
+            required
+          />
+        </div>
+
+        <!-- Confirm -->
+        <div class="relative">
+          <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-white/25 text-sm"></i>
+          <input
+            id="reset-pin-confirm"
+            type="password"
+            inputmode="numeric"
+            maxlength="6"
+            class="auth-input tracking-[0.4em]"
+            placeholder="Confirm PIN"
+            required
+          />
+        </div>
+
+        <p id="reset-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/15 rounded-xl px-3 py-2"></p>
+
+        <button id="reset-submit-btn" type="submit" class="auth-btn mt-2">
+          <span id="reset-submit-text">Save PIN</span>
+          <span id="reset-spinner" class="spinner hidden"></span>
+        </button>
+      </form>
+    </div>
+
+    <!-- =====================================================
+         STEP: success
+    ===================================================== -->
+    <div id="step-success" class="hidden">
+      <div class="flex flex-col items-center justify-center py-8">
+        <div class="w-20 h-20 rounded-full bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center mb-5">
+          <svg class="w-10 h-10 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path class="check-path" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
+        <p class="text-sm font-bold text-white">Welcome back!</p>
+        <p class="text-xs text-white/40 mt-1">Loading your dashboard…</p>
+      </div>
+    </div>
+
   </div>
 
+  <!-- =========================
+       SCRIPTS
+  ========================= -->
   <script type="module" src="./driver-auth.js"></script>
+
 </body>
 </html>
