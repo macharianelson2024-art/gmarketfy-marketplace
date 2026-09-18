@@ -169,3 +169,5 @@ B2C_TIMEOUT_URL = config('B2C_TIMEOUT_URL', default='')
 
 # Withdrawal rules
 WITHDRAWAL_MIN_AMOUNT = config('WITHDRAWAL_MIN_AMOUNT', default='10')
+
+REQUEST_TIMEOUT = 10

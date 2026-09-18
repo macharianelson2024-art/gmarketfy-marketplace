@@ -19,19 +19,17 @@ class WalletLedgerEntryAdmin(admin.ModelAdmin):
 
 @admin.register(VendorPayoutDestination)
 class VendorPayoutDestinationAdmin(admin.ModelAdmin):
-    list_display = ("vendor_id", "type", "number", "account_number", "phone", "updated_at")
-    list_filter = ("type",)
-    search_fields = ("vendor_id", "number", "account_number", "phone")
+    list_display = ("vendor_id", "label", "phone", "updated_at")
+    search_fields = ("vendor_id", "phone", "label")
     readonly_fields = ("created_at", "updated_at")
 
 
 @admin.register(PayoutDestinationChange)
 class PayoutDestinationChangeAdmin(admin.ModelAdmin):
     list_display = ("changed_at", "vendor_id",
-                    "old_type", "old_number", "old_phone",
-                    "new_type", "new_number", "new_phone")
-    list_filter = ("new_type",)
-    search_fields = ("vendor_id", "old_number", "new_number", "old_phone", "new_phone")
+                    "old_phone", "old_label",
+                    "new_phone", "new_label")
+    search_fields = ("vendor_id", "old_phone", "new_phone")
     readonly_fields = ("changed_at",)
     ordering = ("-changed_at",)
 
@@ -46,7 +44,7 @@ class PayoutDestinationChangeAdmin(admin.ModelAdmin):
 class WithdrawalAdmin(admin.ModelAdmin):
     list_display = ("id", "vendor_id", "amount", "fee", "net_amount",
                     "status", "phone", "requested_at", "completed_at")
-    list_filter = ("status", "destination_type")
+    list_filter = ("status",)
     search_fields = ("vendor_id", "phone", "mpesa_receipt_number",
                      "conversation_id", "originator_id")
     readonly_fields = ("requested_at", "completed_at", "updated_at", "raw_result")

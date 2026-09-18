@@ -4,20 +4,16 @@ import logging
 import re
 import secrets
 import string
-from datetime import datetime
 
 import requests
 from django.db import transaction as db_transaction
-from django.http import JsonResponse, response
+from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from firebase_admin import auth
 from vendor_wallet.services import credit_order_payment
 
-
-
 from google.cloud import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
-
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -28,34 +24,27 @@ from Gmarketfy.settings import (
     DARAJA_CONSUMER_SECRET as consumer_secret,
     DARAJA_PASSKEY as passkey,
     SHORTCODE as consumer_shortcode,
-    INITIATOR_NAME as initiator_name,
-    SECURITY_CREDENTIAL as security_credential,
     db as Gmarketfy_db,
     DARAJA_OAUTH_URL,
     DARAJA_STK_URL,
 )
 
-from vendors_plans.services.daraja import get_access_token
-
 from .models import Transactions
-#from orders.services import create_ordering_history_entry
 
 logger = logging.getLogger(__name__)
 
-REQUEST_TIMEOUT = 10  # seconds, for calls to Safaricom
+REQUEST_TIMEOUT = 10
 
 
 # ---------------------------------------------------------------------------
 # Daraja helpers
 # ---------------------------------------------------------------------------
 
-
 def get_access_token():
-    #Returns an access token string, or None if the request failed.
-    url = DARAJA_OAUTH_URL
+    """Returns an access token string, or None if the request failed."""
     try:
         response = requests.get(
-            url,
+            DARAJA_OAUTH_URL,
             auth=(consumer_key, consumer_secret),
             timeout=REQUEST_TIMEOUT,
         )
@@ -101,7 +90,6 @@ def build_payment_label(category, quantity, max_length):
 
     available = max_length - len(suffix)
     if available < 1:
-        # Degenerate case (huge quantity number) — just hard-truncate.
         return f"{category}{suffix}"[:max_length]
 
     if len(category) > available:
@@ -111,12 +99,11 @@ def build_payment_label(category, quantity, max_length):
 
 
 def send_stk_push(payload, access_token):
-    url = DARAJA_STK_URL
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
     }
-    return requests.post(url, json=payload, headers=headers, timeout=REQUEST_TIMEOUT)
+    return requests.post(DARAJA_STK_URL, json=payload, headers=headers, timeout=REQUEST_TIMEOUT)
 
 
 # ---------------------------------------------------------------------------
@@ -280,9 +267,7 @@ def payments_view(request, order_id):
 
     txn.merchant_request_id = response_data.get("MerchantRequestID")
     txn.checkout_request_id = response_data.get("CheckoutRequestID")
-    # ResponseCode arrives as a string (e.g. "0") on the sync STK response —
-    # result_code is an IntegerField, so cast defensively rather than let a
-    # non-numeric value blow up the save() on a stricter DB backend later.
+
     raw_response_code = response_data.get("ResponseCode")
     try:
         txn.result_code = int(raw_response_code)
@@ -290,11 +275,7 @@ def payments_view(request, order_id):
         txn.result_code = None
     txn.result_description = response_data.get("ResponseDescription") or response_data.get("errorMessage")
 
-    if str(raw_response_code) == "0":
-        txn.status = "Initialized"
-    else:
-        txn.status = "Failed"
-
+    txn.status = "Initialized" if str(raw_response_code) == "0" else "Failed"
     txn.save()
 
     return Response(
@@ -317,23 +298,16 @@ def _extract_callback_metadata(stk_callback):
     return {item.get("Name"): item.get("Value") for item in items if "Name" in item}
 
 
-# Statuses that already mean "this order is fully done" — payment landing
-# here shouldn't rewrite anything, just confirm paymentStatus. Note "picked
-# up" is deliberately NOT here: an unpaid "picked up" order paying now must
-# still become "paid & picked up".
 _FULLY_DONE_STATUSES = {"paid"}
 
 
 def _status_after_payment(current_status):
     """
     Given the order's current `status`, returns what it should become once
-    payment succeeds, following the "paid & {previous state}" scheme (e.g.
-    confirmed -> "paid & confirmed", delivered -> "paid & delivered").
+    payment succeeds, following the "paid & {previous state}" scheme.
 
     Idempotent by construction: a status that's already "paid & ..." or
-    already a fully-done terminal status is returned unchanged, so a
-    duplicate callback (or a callback arriving after the driver app has
-    already moved things along) can never double-wrap or downgrade it.
+    already a fully-done terminal status is returned unchanged.
     """
     current_status = (current_status or "pending").strip()
     lowered = current_status.lower()
@@ -349,20 +323,7 @@ def _mark_order_paid(firestore_txn, order_ref, payment_details):
     """
     Runs inside a Firestore transaction so a duplicate/replayed callback
     can never double-apply the update or double-write the transaction
-    record, and can't race another writer (e.g. the driver app flipping
-    `status` at the same moment).
-
-    `payment_details` carries the receipt-level facts that only exist on
-    the Django Transactions row (id, mpesa_receipt_number,
-    transaction_reference, checkout_request_id, amount) — the order doc
-    itself doesn't have these. `orderingHistory` is intentionally NOT
-    written here — that's driven by delivery/pickup completion, a
-    different trigger than "payment succeeded".
-
-    Returns a dict describing the order right after the update
-    (client_id, driver_id, is_delivery, new_status) so the caller can
-    decide whether driver/client-linkage cleanup applies — or None if
-    this call was a no-op (order was already paid).
+    record, and can't race another writer.
     """
     snapshot = order_ref.get(transaction=firestore_txn)
     if not snapshot.exists:
@@ -371,27 +332,19 @@ def _mark_order_paid(firestore_txn, order_ref, payment_details):
 
     order_data = snapshot.to_dict()
 
-    # Already applied by an earlier delivery of this same callback -> no-op,
-    # covers both the status update and the transaction record below.
     if order_data.get("paymentStatus") == "paid":
         return None
 
     new_status = _status_after_payment(order_data.get("status"))
     paid_at = timezone.now()
 
-    updates = {
+    firestore_txn.update(order_ref, {
         "paymentStatus": "paid",
         "paidAt": paid_at,
         "status": new_status,
         "mpesaReceiptNumber": payment_details["mpesa_receipt_number"],
-    }
-    firestore_txn.update(order_ref, updates)
+    })
 
-    # Every successful payment gets a vendor-facing transaction record,
-    # regardless of where the order is in its delivery/pickup lifecycle.
-    # Doc ID = checkout_request_id (unique per Daraja payment attempt), so
-    # this is idempotent at the Firestore layer too, independent of the
-    # Django-side lock that should already prevent a re-run.
     vendor_txn_ref = Gmarketfy_db.collection("transactions").document(
         payment_details["checkout_request_id"]
     )
@@ -428,15 +381,9 @@ def _apply_payment_to_order(order_id, payment_details):
 
 def _maybe_remove_client_from_driver(driver_id, client_id):
     """
-    Backend port of the frontend's maybeRemoveClientFromDriver. Ported so
-    the pay-after-delivery path — where payment itself is what makes the
-    order terminal ("paid & delivered") — can trigger this cleanup too,
-    not just frontend-driven status writes (which still cover pay-before
-    delivery via the driver's proof-upload flow).
-
-    Kept outside the Firestore transaction above: this is a separate
-    read+conditional-write against the drivers collection, not something
-    that belongs inside the order/transaction-record atomic write.
+    Backend port of the frontend's maybeRemoveClientFromDriver. Kept outside
+    the Firestore transaction — this is a separate read+conditional-write
+    against the drivers collection.
     """
     if not driver_id or not client_id:
         return
@@ -445,13 +392,10 @@ def _maybe_remove_client_from_driver(driver_id, client_id):
             Gmarketfy_db.collection("orders")
             .where(filter=FieldFilter("driverId", "==", driver_id))
             .where(filter=FieldFilter("clientId", "==", client_id))
-            .where(
-                filter=FieldFilter(
-                    "status",
-                    "not-in",
-                    ["delivered", "paid & delivered", "picked up", "cancelled"],
-                )
-            )
+            .where(filter=FieldFilter(
+                "status", "not-in",
+                ["delivered", "paid & delivered", "picked up", "cancelled"],
+            ))
             .limit(1)
             .get()
         )
@@ -469,9 +413,8 @@ def create_ordering_history_entry(order_id):
     """
     Writes an orderingHistory doc for order_id — but only once the order
     is BOTH paid and fulfilled. Safe to call from either the payment
-    callback or the fulfillment/proof-of-delivery handler; whichever
-    fires second is the one that actually creates the doc. No-ops (and
-    returns None) if the order isn't fully complete yet.
+    callback or the fulfillment handler; whichever fires second is the
+    one that actually creates the doc.
     """
     order_ref = Gmarketfy_db.collection("orders").document(order_id)
     order_snap = order_ref.get()
@@ -490,21 +433,17 @@ def create_ordering_history_entry(order_id):
     )
 
     if not (payment_done and fulfillment_done):
-        # The other half hasn't happened yet — nothing to write.
         return None
 
-    # Guard against double-writes if both events somehow fire close together
     existing = Gmarketfy_db.collection("orderingHistory").where(
         "sourceOrderId", "==", order_id
     ).limit(1).get()
     if existing:
         return existing[0].id
 
-    # image lives on the product doc, not the order — fetch it
     product_snap = Gmarketfy_db.collection("products").document(order_data.get("product_id")).get()
     image = product_snap.to_dict().get("image") if product_snap.exists else None
 
-    # vendorName lives on the vendor doc, not the order — fetch it
     vendor_snap = Gmarketfy_db.collection("vendors").document(order_data.get("vendor_id")).get()
     vendor_name = vendor_snap.to_dict().get("storeName") if vendor_snap.exists else None
 
@@ -540,6 +479,7 @@ def create_ordering_history_entry(order_id):
 
     history_ref.set(history_doc)
     return history_ref.id
+
 
 @csrf_exempt
 def payments_callback(request):
@@ -581,15 +521,13 @@ def payments_callback(request):
                 )
                 return JsonResponse(ack, status=200)
 
-            # --- The core "don't corrupt on repeat callbacks" guard -----
-            # Once a transaction leaves "Initialized" it is terminal.
-            # Any further callback for the same checkout_request_id is a
-            # Daraja retry (or a replay) and must be a strict no-op here.
+            # Once a transaction leaves "Initialized" it is terminal. Any
+            # further callback for the same checkout_request_id is a Daraja
+            # retry (or a replay) and must be a strict no-op here.
             if txn.status != "Initialized":
                 logger.info(
                     "payments_callback: duplicate callback for %s (already %s), ignoring",
-                    checkout_request_id,
-                    txn.status,
+                    checkout_request_id, txn.status,
                 )
                 return JsonResponse(ack, status=200)
 
@@ -597,9 +535,6 @@ def payments_callback(request):
             txn.result_code = result_code
             txn.result_description = result_desc
             txn.raw_callback = body
-            # timezone.now() instead of datetime.utcnow() — USE_TZ=True means
-            # utcnow() produces a naive datetime that Django has to guess the
-            # tz for on save. That warning in your logs was this line.
             txn.callback_processed_at = timezone.now()
 
             if result_code == 0:
@@ -618,9 +553,11 @@ def payments_callback(request):
 
     if txn is None or txn.status != "Completed":
         return JsonResponse(ack, status=200)
-    
 
     # --- Credit the vendor's wallet -------------------------------------
+    # Idempotent — safe to call multiple times for the same txn. Outside the
+    # transaction block above so a wallet failure doesn't roll back the
+    # Completed status.
     try:
         credit_order_payment(txn)
     except Exception:
@@ -629,13 +566,7 @@ def payments_callback(request):
             txn.transaction_reference,
         )
 
-
-    # --- Step 1: sync payment onto the Firestore order doc -------------
-    # _apply_payment_to_order is expected to write paymentStatus: "paid"
-    # AND mpesaReceiptNumber onto the order doc in the same update — the
-    # history entry below reads the receipt number off the order doc
-    # rather than taking it as a param, since it may be triggered later
-    # by the fulfillment side instead of this callback.
+    # --- Sync payment onto the Firestore order doc ----------------------
     try:
         result = _apply_payment_to_order(
             order_id=txn.order_id,
@@ -645,14 +576,11 @@ def payments_callback(request):
                 "transaction_reference": txn.transaction_reference,
                 "checkout_request_id": txn.checkout_request_id,
                 # Firestore's protobuf encoder has no Decimal mapping —
-                # it only knows JSON-native types (int/float/str/bool/etc).
-                # txn.subtotal is a Django DecimalField, so it must be
-                # cast before it's handed to any firestore_txn.set(...)
-                # call downstream. This is what raised the TypeError.
+                # cast before handing to firestore_txn.set(...).
                 "amount": float(txn.subtotal) if txn.subtotal is not None else None,
             },
         )
-        
+
         if result and result["is_delivery"] and result["new_status"] == "paid & delivered" and result["driver_id"]:
             try:
                 _maybe_remove_client_from_driver(result["driver_id"], result["client_id"])
@@ -660,13 +588,17 @@ def payments_callback(request):
                 logger.exception(
                     "payments_callback: driver cleanup failed for order %s", txn.order_id
                 )
+
         if not txn.firestore_synced:
             txn.firestore_synced = True
             txn.save(update_fields=["firestore_synced"])
+
         try:
-             create_ordering_history_entry(order_id=txn.order_id)
+            create_ordering_history_entry(order_id=txn.order_id)
         except Exception:
-            logger.exception("payments_callback: history entry creation failed for order %s", txn.order_id)
+            logger.exception(
+                "payments_callback: history entry creation failed for order %s", txn.order_id
+            )
     except Exception:
         logger.exception(
             "payments_callback: transaction %s marked Completed but Firestore order update failed",
@@ -674,216 +606,10 @@ def payments_callback(request):
         )
         txn.firestore_synced = False
         txn.save(update_fields=["firestore_synced"])
-        
-        
         return JsonResponse(ack, status=200)
-    return JsonResponse(ack, status=200)
-    
-    
-    
-    import requests
-import json
-from django.conf import settings
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
 
-
-def _get_access_token():
-    response = requests.get(
-        "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
-        auth=(settings.DARAJA_CONSUMER_KEY, settings.DARAJA_CONSUMER_SECRET),
-    )
-    response.raise_for_status()
-    return response.json()["access_token"]
-
-@csrf_exempt
-def send_test_payout(request):
-    """
-    Hardcoded test payout: sends KSh 100 to a personal phone number
-    for pulling test funds out after simulating client payments.
-    """
-    amount = 100
-    phone_number = "254795459371"  # 0795459371 formatted to Daraja's required 2547XXXXXXXX
-
-    access_token = _get_access_token()
-
-    payload = {
-        "InitiatorName": settings.INITIATOR_NAME,
-        "SecurityCredential": settings.SECURITY_CREDENTIAL,
-        "CommandID": "BusinessPayment",
-        "Amount": amount,
-        "PartyA": settings.SHORTCODE,
-        "PartyB": phone_number,
-        "Remarks": "Test payout",
-        "QueueTimeOutURL": f"{settings.CALLBACK_URL}/b2c/timeout/",
-        "ResultURL": f"{settings.CALLBACK_URL}/b2c/result/",
-        "Occasion": "Testing",
-    }
-
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json",
-    }
-
-    response = requests.post(
-        "https://sandbox.safaricom.co.ke/mpesa/b2c/v1/paymentrequest",  # swap to production URL when ready
-        json=payload,
-        headers=headers,
-    )
-    response.raise_for_status()
-    return response.json()
-
-
-@csrf_exempt
-@require_POST
-def b2c_result_callback(request):
-    data = json.loads(request.body)
-    # log it, inspect data["Result"]["ResultCode"] == 0 for success
-    print(data)
-    return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
-
-
-@csrf_exempt
-@require_POST
-def b2c_timeout_callback(request):
-    data = json.loads(request.body)
-    print(data)
-    return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
-
-
-
-
-
-
-
-
-import logging
-import requests
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-
-from Gmarketfy.settings import (
-    CALLBACK_URL,
-    INITIATOR_NAME as initiator_name,
-    SECURITY_CREDENTIAL as security_credential,
-    SHORTCODE as consumer_shortcode,
-)
-
-
-logger = logging.getLogger(__name__)
-
-# Safaricom Production B2C Endpoint
-DARAJA_B2C_URL = "https://api.safaricom.co.ke/mpesa/b2c/v1/paymentrequest"
-REQUEST_TIMEOUT = 10  # Seconds
-
-
-def execute_b2c_payout(amount=100, phone_number="254795459371", remarks="Test payout"):
-    """
-    Reusable service function to send funds from Paybill/Till (PartyA) to a phone number (PartyB).
-    
-    :param amount: Amount in KES (int/float)
-    :param phone_number: Recipient phone number in 2547XXXXXXXX format
-    :param remarks: Brief description of the payout
-    :return: dict containing 'success' status, response data, or error message
-    """
-    access_token = get_access_token()
-    if not access_token:
-        logger.error("B2C Payout failed: Could not obtain Daraja access token")
-        return {"success": False, "message": "Failed to obtain Daraja access token"}
-
-    payload = {
-        "InitiatorName": initiator_name,
-        "SecurityCredential": security_credential,
-        "CommandID": "BusinessPayment",
-        "Amount": int(amount),
-        "PartyA": consumer_shortcode,
-        "PartyB": phone_number,
-        "Remarks": remarks,
-        "QueueTimeOutURL": f"{CALLBACK_URL}/api/v1/payments/b2c/timeout/",
-        "ResultURL": f"{CALLBACK_URL}/api/v1/payments/b2c/result/",
-        "Occasion": "Testing Reversal/Payout",
-    }
-
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json",
-    }
-
-    try:
-        response = requests.post(
-            DARAJA_B2C_URL,
-            json=payload,
-            headers=headers,
-            timeout=REQUEST_TIMEOUT,
-        )
-        response_data = response.json()
-        logger.info("B2C Payout triggered successfully: %s", response_data)
-        return {"success": True, "data": response_data}
-    except (requests.RequestException, ValueError) as exc:
-        logger.error("B2C Payout request failed: %s", exc)
-        return {"success": False, "message": f"Failed to connect to Daraja: {str(exc)}"}
-
-
-# ---------------------------------------------------------------------------
-# Views
-# ---------------------------------------------------------------------------
-
-@csrf_exempt
-@api_view(["POST"])
-def send_test_payout_view(request):
-    """
-    API View: Hardcodes KES 100 payout to +254 795 459 371 for testing.
-    """
-    # Hardcoded test values as requested
-    TEST_AMOUNT = 100
-    TEST_PHONE = "254795459371"
-
-    result = execute_b2c_payout(
-        amount=TEST_AMOUNT,
-        phone_number=TEST_PHONE,
-        remarks="Gmarketfy Test Reversal",
-    )
-
-    if not result["success"]:
-        return Response({"message": result["message"]}, status=502)
-
-    return Response(
-        {
-            "message": f"Successfully initiated KES {TEST_AMOUNT} payout to {TEST_PHONE}",
-            "daraja_response": result["data"],
-        },
-        status=200,
-    )
-
-
-@csrf_exempt
-@require_POST
-def b2c_result_callback(request):
-    """Callback receiver when Safaricom processes the B2C payout."""
-    ack = {"ResultCode": 0, "ResultDesc": "Accepted"}
-    try:
-        data = json.loads(request.body.decode("utf-8"))
-        logger.info("B2C Result Callback Received: %s", data)
-    except Exception:
-        logger.exception("Failed to parse B2C Result callback body")
     return JsonResponse(ack, status=200)
 
-
-@csrf_exempt
-@require_POST
-def b2c_timeout_callback(request):
-    """Callback receiver if the B2C request times out on Safaricom's side."""
-    ack = {"ResultCode": 0, "ResultDesc": "Accepted"}
-    try:
-        data = json.loads(request.body.decode("utf-8"))
-        logger.warning("B2C Timeout Callback Received: %s", data)
-    except Exception:
-        logger.exception("Failed to parse B2C Timeout callback body")
-    return JsonResponse(ack, status=200)
 
 # ---------------------------------------------------------------------------
 # payment_status_view — poll a specific order payment

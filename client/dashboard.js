@@ -113,33 +113,43 @@ window.addEventListener('offline', () => {
 // =========================
 // APP INIT
 // =========================
+// Shared tab switcher — used by both the desktop nav and the mobile nav.
+async function switchClientTab(index, btn = null) {
+  const buttons = document.querySelectorAll("#nav .btn");
+
+  // Update desktop nav button state (harmless on mobile — hidden anyway)
+  buttons.forEach(b => {
+    b.classList.remove("text-white");
+    b.classList.add("text-white/50");
+  });
+  const targetBtn = btn || buttons[index];
+  if (targetBtn) {
+    targetBtn.classList.add("text-white");
+    targetBtn.classList.remove("text-white/50");
+    moveSlider(targetBtn);
+  }
+
+  // Update tab panels
+  tabs.forEach(t => t.classList.remove("active"));
+  loader.classList.add("active");
+
+  setTimeout(async () => {
+    loader.classList.remove("active");
+    tabs[index].classList.add("active");
+
+    if (index === 1) await loadPendingTab();
+    if (index === 2) await loadHistoryTab();
+    if (index === 3) await loadCartTab();
+    if (index === 4) await loadSettingsTab();
+  }, 150);
+}
+window.switchClientTab = switchClientTab;
+
 function initializeApp() {
-  const buttons = document.querySelectorAll(".btn");
+  const buttons = document.querySelectorAll("#nav .btn");
 
   buttons.forEach((btn, i) => {
-    btn.addEventListener("click", async () => {
-      buttons.forEach(b => {
-        b.classList.remove("text-white");
-        b.classList.add("text-white/50");
-      });
-
-      btn.classList.add("text-white");
-      btn.classList.remove("text-white/50");
-
-      moveSlider(btn);
-      tabs.forEach(t => t.classList.remove("active"));
-      loader.classList.add("active");
-
-      setTimeout(async () => {
-        loader.classList.remove("active");
-        tabs[i].classList.add("active");
-
-        if (i === 1) await loadPendingTab();
-        if (i === 2) await loadHistoryTab();
-        if (i === 3) await loadCartTab();
-        if (i === 4) await loadSettingsTab();
-      }, 150);
-    });
+    btn.addEventListener("click", () => switchClientTab(i, btn));
   });
 
   moveSlider(buttons[0]);
@@ -198,31 +208,30 @@ document.getElementById('browse-explore').addEventListener('click', () => { wind
 // NOTIFICATION BADGES
 // =========================
 window.updateCartNotification = function (cart = 0) {
-  const el = document.querySelector('.cart-notif');
-  if (!el) return;
-  el.innerText = cart;
-  cart ? el.classList.remove('hidden') : setTimeout(() => el.classList.add('hidden'), 500);
+  document.querySelectorAll('.cart-notif').forEach(el => {
+    el.innerText = cart;
+    if (cart) el.classList.remove('hidden');
+    else setTimeout(() => el.classList.add('hidden'), 500);
+  });
 };
 
 window.updatePendingNotificaton = function (pendingProducts = 0) {
-  const el = document.querySelector('.pending-notif');
-  if (!el) return;
-  el.innerText = pendingProducts;
-  pendingProducts ? el.classList.remove('hidden') : setTimeout(() => el.classList.add('hidden'), 500);
+  document.querySelectorAll('.pending-notif').forEach(el => {
+    el.innerText = pendingProducts;
+    if (pendingProducts) el.classList.remove('hidden');
+    else setTimeout(() => el.classList.add('hidden'), 500);
+  });
 };
 
+// Live cart badge listener
 // Live cart badge listener
 function cartNotifListen() {
   if (!auth.currentUser) return;
   if (window._cartNotifUnsub) window._cartNotifUnsub();
 
   window._cartNotifUnsub = onSnapshot(doc(db, "carts", auth.currentUser.uid), (snap) => {
-    const items  = snap.exists() ? (snap.data().carts || []) : [];
-    const length = items.length;
-    const el     = document.querySelector('.cart-notif');
-    if (!el) return;
-    el.innerText = length;
-    length ? el.classList.remove('hidden') : setTimeout(() => el.classList.add('hidden'), 500);
+    const items = snap.exists() ? (snap.data().carts || []) : [];
+    window.updateCartNotification(items.length);
   });
 }
 
@@ -238,14 +247,9 @@ function pendingNotifListen() {
   );
 
   window._pendingNotifUnsub = onSnapshot(q, (snap) => {
-    const el = document.querySelector('.pending-notif');
-    if (!el) return;
-    const count = snap.size;
-    el.innerText = count;
-    count ? el.classList.remove('hidden') : setTimeout(() => el.classList.add('hidden'), 500);
+    window.updatePendingNotificaton(snap.size);
   });
 }
-
 // =========================
 // DASHBOARD LISTENER
 // =========================

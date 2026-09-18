@@ -417,8 +417,7 @@
       <h3 class="text-sm font-semibold text-white">Your Plan</h3>
       <p class="text-xs text-white/30">Upgrade for faster payouts &amp; lower fees</p>
     </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
       <!-- FREE -->
       <div class="plan-card glass rounded-2xl p-5 relative border border-white/5" data-plan="free">
@@ -426,9 +425,9 @@
         <p class="text-sm font-bold text-white">Free</p>
         <p class="text-xs text-white/40 mt-1">Weekly batch payout</p>
         <div class="mt-4 space-y-2 text-xs text-white/50">
-          <p>Commission <span class="text-white/80 font-semibold">8–10%</span></p>
-          <p>Instant min. <span class="text-white/80 font-semibold">KSh 5,000</span></p>
-          <p>Safaricom fee <span class="text-white/80 font-semibold">You pay full + margin</span></p>
+          <p>Withdrawal fee <span class="text-white/80 font-semibold">5%</span></p>
+          <p>Min. withdrawal <span class="text-white/80 font-semibold">KSh 5,000</span></p>
+          <p>Safaricom fee <span class="text-white/80 font-semibold">You pay 100%</span></p>
         </div>
         <button class="plan-select-btn w-full mt-5 py-2.5 rounded-xl text-xs font-semibold bg-white/5 text-white/50 hover:bg-white/10 transition" data-plan="free">
           Select
@@ -441,9 +440,9 @@
         <p class="text-sm font-bold text-white">Medium</p>
         <p class="text-xs text-white/40 mt-1">Payout every 2–3 days</p>
         <div class="mt-4 space-y-2 text-xs text-white/50">
-          <p>Commission <span class="text-white/80 font-semibold">5–6%</span></p>
-          <p>Instant min. <span class="text-white/80 font-semibold">KSh 3,000</span></p>
-          <p>Safaricom fee <span class="text-white/80 font-semibold">~70% you / 30% us</span></p>
+          <p>Withdrawal fee <span class="text-white/80 font-semibold">5%</span></p>
+          <p>Min. withdrawal <span class="text-white/80 font-semibold">KSh 3,000</span></p>
+          <p>Safaricom fee <span class="text-white/80 font-semibold">We cover 50%</span></p>
         </div>
         <button class="plan-select-btn w-full mt-5 py-2.5 rounded-xl text-xs font-semibold bg-white/5 text-white/50 hover:bg-white/10 transition" data-plan="medium">
           Select
@@ -456,9 +455,9 @@
         <p class="text-sm font-bold text-white">Premium</p>
         <p class="text-xs text-white/40 mt-1">Daily payout</p>
         <div class="mt-4 space-y-2 text-xs text-white/50">
-          <p>Commission <span class="text-white/80 font-semibold">3–4%</span></p>
-          <p>Instant min. <span class="text-white/80 font-semibold">KSh 1,500</span></p>
-          <p>Safaricom fee <span class="text-white/80 font-semibold">~40% you / 60% us</span></p>
+          <p>Withdrawal fee <span class="text-white/80 font-semibold">5%</span></p>
+          <p>Min. withdrawal <span class="text-white/80 font-semibold">KSh 1,500</span></p>
+          <p>Safaricom fee <span class="text-white/80 font-semibold">We cover 80%</span></p>
         </div>
         <button class="plan-select-btn w-full mt-5 py-2.5 rounded-xl text-xs font-semibold bg-white/5 text-white/50 hover:bg-white/10 transition" data-plan="premium">
           Select
@@ -471,9 +470,9 @@
         <p class="text-sm font-bold text-white">Ultimate</p>
         <p class="text-xs text-white/40 mt-1">Instant, on-demand</p>
         <div class="mt-4 space-y-2 text-xs text-white/50">
-          <p>Commission <span class="text-white/80 font-semibold">1.5–2%</span></p>
-          <p>Instant min. <span class="text-white/80 font-semibold">KSh 500</span></p>
-          <p>Safaricom fee <span class="text-white/80 font-semibold">Flat KSh 10–20</span></p>
+          <p>Withdrawal fee <span class="text-white/80 font-semibold">5%</span></p>
+          <p>Min. withdrawal <span class="text-white/80 font-semibold">KSh 500</span></p>
+          <p>Safaricom fee <span class="text-white/80 font-semibold">We cover 100%</span></p>
         </div>
         <button class="plan-select-btn w-full mt-5 py-2.5 rounded-xl text-xs font-semibold bg-indigo-500 text-white hover:bg-indigo-600 transition" data-plan="ultimate">
           Select
@@ -521,7 +520,7 @@
       <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Amount</label>
       <div class="relative">
         <span class="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 text-sm font-semibold">KSh</span>
-        <input type="number" id="withdraw-amount" class="w-full pl-12 pr-4 bg-white/[0.03] border border-white/10 rounded-xl text-white text-lg font-bold outline-none focus:border-indigo-500/50 h-14" placeholder="0" />
+        <input type="number" id="withdraw-amount" step="1" min="1"  class="w-full pl-12 pr-4 bg-white/[0.03] border border-white/10 rounded-xl text-white text-lg font-bold outline-none focus:border-indigo-500/50 h-14" placeholder="0" />
       </div>
       <p class="text-xs text-white/30">Available: <span id="withdraw-available-balance">KSh 0</span></p>
     </div>
@@ -544,7 +543,7 @@
 
     <!-- BELOW-MINIMUM NUDGE -->
     <div id="withdraw-below-min-notice" class="hidden mt-4 rounded-xl bg-amber-500/10 border border-amber-500/20 p-4 text-xs text-amber-300">
-      You're below the instant withdrawal minimum for your plan. Your funds will go out with your next scheduled payout instead.
+      <span id="withdraw-below-min-text">Your plan requires a minimum withdrawal.</span>
     </div>
 
     <!-- ACTIONS -->
@@ -558,10 +557,9 @@
     </div>
   </div>
 </div>
-
 <!-- ====================================================================
-     PAYOUT DESTINATION MODAL — bottom sheet on mobile, modal on desktop
-     Two-step: 1) enter till/paybill  2) re-verify with password before save
+     PAYOUT DESTINATION MODAL — B2C phone only
+     Two-step: 1) enter phone + label  2) re-verify with password
 ========================================================================= -->
 <div id="payout-modal-overlay" class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-md hidden opacity-0 transition-opacity duration-300 flex items-end sm:items-center justify-center">
   <div id="payout-modal"
@@ -578,33 +576,30 @@
       </button>
     </div>
 
-    <!-- ===== STEP 1: DESTINATION DETAILS ===== -->
+    <!-- ===== STEP 1: PHONE + LABEL ===== -->
     <div id="payout-step-details">
 
-      <!-- TYPE TOGGLE -->
-      <div class="space-y-2 mb-5">
-        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Destination Type</label>
-        <div class="flex gap-3">
-          <button type="button" class="payout-type-btn flex-1 py-3 rounded-xl border border-white/10 bg-white/[0.02] text-sm font-semibold text-white/50 hover:border-indigo-500/30 hover:text-white/80 transition-all duration-200" data-type="till">
-            🏪 Till Number
-          </button>
-          <button type="button" class="payout-type-btn flex-1 py-3 rounded-xl border border-white/10 bg-white/[0.02] text-sm font-semibold text-white/50 hover:border-indigo-500/30 hover:text-white/80 transition-all duration-200" data-type="paybill">
-            🏦 Paybill
-          </button>
-        </div>
-        <input type="hidden" id="payout-type" value="" />
+      <div class="rounded-xl bg-indigo-500/10 border border-indigo-500/20 p-4 text-xs text-indigo-200 mb-5 leading-relaxed">
+        💸 Withdrawals are sent straight to your <strong class="text-white">M-Pesa phone number</strong>.
+        Make sure the number below is the one you want to receive money on.
       </div>
 
-      <!-- NUMBER -->
+      <!-- PHONE -->
       <div class="space-y-2 mb-5">
-        <label id="payout-number-label" class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Till Number</label>
-        <input type="text" id="payout-number-input" class="w-full px-4 bg-white/[0.03] border border-white/10 rounded-xl text-white text-sm outline-none focus:border-indigo-500/50 h-12" placeholder="e.g. 123456" />
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">M-Pesa Phone Number</label>
+        <input type="tel" id="payout-phone-input"
+          class="w-full px-4 bg-white/[0.03] border border-white/10 rounded-xl text-white text-sm outline-none focus:border-indigo-500/50 h-12"
+          placeholder="07XX XXX XXX" />
+        <p class="text-[10px] text-white/30">Kenyan number (07/01/+254). B2C only sends to phones.</p>
       </div>
 
-      <!-- ACCOUNT NUMBER (paybill only) -->
-      <div id="payout-account-field" class="hidden space-y-2 mb-5">
-        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Account Number</label>
-        <input type="text" id="payout-account-input" class="w-full px-4 bg-white/[0.03] border border-white/10 rounded-xl text-white text-sm outline-none focus:border-indigo-500/50 h-12" placeholder="e.g. Store name or account ref" />
+      <!-- LABEL -->
+      <div class="space-y-2 mb-5">
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Label <span class="text-white/30 font-normal normal-case tracking-normal">(optional)</span></label>
+        <input type="text" id="payout-label-input" maxlength="50"
+          class="w-full px-4 bg-white/[0.03] border border-white/10 rounded-xl text-white text-sm outline-none focus:border-indigo-500/50 h-12"
+          placeholder="e.g. Personal M-Pesa, Business line" />
+        <p class="text-[10px] text-white/30">Helps you recognise this number at a glance.</p>
       </div>
 
       <button id="payout-continue-btn" class="w-full h-12 bg-white/10 text-white/40 font-extrabold rounded-xl text-sm transition-all mt-2" disabled>

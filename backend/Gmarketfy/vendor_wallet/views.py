@@ -6,10 +6,13 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from .services import get_plan_min_withdrawal
+
 
 from .auth import authenticate_firebase_user
 from .models import Withdrawal
 from .services import (
+    calculate_withdrawal_charges,
     create_withdrawal,
     get_payout_destination,
     get_payout_destination_history,
@@ -52,10 +55,8 @@ def _serialize_destination(dest):
     if dest is None:
         return None
     return {
-        "type": dest.type,
-        "number": dest.number,
-        "accountNumber": dest.account_number,
         "phone": dest.phone,
+        "label": dest.label,
         "updatedAt": dest.updated_at,
     }
 
@@ -72,13 +73,10 @@ def payout_destination_view(request):
         dest = get_payout_destination(vendor_id)
         return Response({"destination": _serialize_destination(dest)}, status=200)
 
-    # POST
     dest, err = set_payout_destination(
         vendor_id,
-        request.data.get("type"),
-        request.data.get("number"),
-        request.data.get("accountNumber"),
         request.data.get("phone"),
+        request.data.get("label"),
     )
     if err:
         return Response({"message": err}, status=400)
@@ -108,18 +106,13 @@ def payout_destination_history_view(request):
                 {
                     "old": (
                         {
-                            "type": c.old_type,
-                            "number": c.old_number,
-                            "accountNumber": c.old_account_number,
                             "phone": c.old_phone,
-                        }
-                        if c.old_type else None
+                            "label": c.old_label,
+                        } if c.old_phone else None
                     ),
                     "new": {
-                        "type": c.new_type,
-                        "number": c.new_number,
-                        "accountNumber": c.new_account_number,
                         "phone": c.new_phone,
+                        "label": c.new_label,
                     },
                     "changedAt": c.changed_at,
                 }
@@ -131,21 +124,67 @@ def payout_destination_history_view(request):
 
 
 # ---------------------------------------------------------------------------
-# Withdrawals
+# Withdrawal preview — exact fee breakdown for a proposed amount
 # ---------------------------------------------------------------------------
 
+@csrf_exempt
+@api_view(["POST"])
+def withdrawal_preview_view(request):
+    auth = authenticate_firebase_user(request)
+    if not auth["authenticated"]:
+        return Response({"message": auth["message"]}, status=401)
+    vendor_id = auth["user"]["uid"]
+
+    try:
+        amount = Decimal(str(request.data.get("amount", "")))
+    except (InvalidOperation, TypeError):
+        return Response({"message": "Invalid amount."}, status=400)
+
+    if amount <= 0:
+        return Response({"message": "Amount must be positive."}, status=400)
+
+    bal = get_vendor_balance(vendor_id)
+    if amount > bal["balance"]:
+        return Response({"message": "Amount exceeds available balance."}, status=400)
+
+    plan_min = get_plan_min_withdrawal(vendor_id)
+    if amount < plan_min:
+        return Response(
+            {"message": f"Your plan requires a minimum withdrawal of KSh {plan_min:.0f}."},
+            status=400,
+        )
+        
+    charges = calculate_withdrawal_charges(vendor_id, amount)
+    
+    
+    return Response({
+        "amount": f"{amount:.0f}",
+        "gmarketfy_fee": f"{charges['gmarketfy_fee']:.0f}",
+        "safaricom_fee_total": f"{charges['safaricom_fee_total']:.0f}",
+        "safaricom_fee_vendor_pays": f"{charges['safaricom_fee_vendor_pays']:.0f}",
+        "safaricom_fee_gmarketfy_absorbs": f"{charges['safaricom_fee_gmarketfy_absorbs']:.0f}",
+        "net_to_vendor": f"{charges['net_to_vendor']:.0f}",
+    }, status=200)
+
+
+# ---------------------------------------------------------------------------
+# Withdrawals
+# ---------------------------------------------------------------------------
 def _serialize_withdrawal(w):
     return {
-        "id": w.id,
+        "id": str(w.id),
         "status": w.status,
-        "amount": f"{w.amount:.2f}",
-        "fee": f"{w.fee:.2f}",
-        "net_amount": f"{w.net_amount:.2f}",
+        "amount": f"{w.amount:.0f}",
+        "fee": f"{w.fee:.0f}",
+        "net_amount": f"{w.net_amount:.0f}",
+        "safaricom_fee_total": f"{w.safaricom_fee_total:.0f}",
+        "safaricom_fee_vendor_pays": f"{w.safaricom_fee_vendor_pays:.0f}",
+        "safaricom_fee_gmarketfy_absorbs": f"{w.safaricom_fee_gmarketfy_absorbs:.0f}",
         "phone": w.phone,
-        "destination_type": w.destination_type,
-        "destination_number": w.destination_number,
         "mpesa_receipt_number": w.mpesa_receipt_number,
         "result_description": w.result_description,
+        "originator_id": w.originator_id,
+        "conversation_id": w.conversation_id,
         "requested_at": w.requested_at,
         "completed_at": w.completed_at,
     }
@@ -173,13 +212,16 @@ def withdraw_view(request):
 
     return Response(
         {
-            "withdrawal_id": w.id,
+            "withdrawal_id": str(w.id),
             "status": w.status,
-            "amount": f"{w.amount:.2f}",
-            "fee": f"{w.fee:.2f}",
-            "net_amount": f"{w.net_amount:.2f}",
+            "amount": f"{w.amount:.0f}",
+            "fee": f"{w.fee:.0f}",
+            "net_amount": f"{w.net_amount:.0f}",
+            "safaricom_fee_total": f"{w.safaricom_fee_total:.0f}",
+            "safaricom_fee_vendor_pays": f"{w.safaricom_fee_vendor_pays:.0f}",
+            "safaricom_fee_gmarketfy_absorbs": f"{w.safaricom_fee_gmarketfy_absorbs:.0f}",
             "message": (
-                f"Withdrawal initiated. You'll receive KSh {w.net_amount:.2f} shortly."
+                f"Withdrawal initiated. You'll receive KSh {w.net_amount:.0f} shortly."
                 if w.status == Withdrawal.STATUS_PROCESSING
                 else (w.result_description or "Withdrawal failed.")
             ),
@@ -216,7 +258,7 @@ def withdrawal_status_view(request, withdrawal_id):
 
 
 # ---------------------------------------------------------------------------
-# B2C callbacks (Daraja — no Firebase auth)
+# B2C callbacks
 # ---------------------------------------------------------------------------
 
 @csrf_exempt
@@ -249,9 +291,8 @@ def b2c_timeout_callback(request):
     try:
         body = json.loads(request.body.decode("utf-8"))
     except (ValueError, UnicodeDecodeError):
+        logger.error("b2c_timeout_callback: bad body")
         return JsonResponse(ack, status=200)
 
     logger.warning("b2c_timeout_callback: %s", body)
-    # We don't reverse on timeout — B2C might still complete and send the
-    # real ResultURL. Only the ResultURL moves the withdrawal to terminal.
     return JsonResponse(ack, status=200)

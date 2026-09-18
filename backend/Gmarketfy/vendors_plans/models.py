@@ -19,7 +19,7 @@ class Plan(models.Model):
     )
     duration_days = models.PositiveIntegerField(default=30)
     # tier is the semantic rank used for upgrade/downgrade detection.
-    # Never compare by price — prices change, promos exist, tiers are stable.
+    # Prices change, promos exist, tiers are stable.
     tier = models.PositiveSmallIntegerField(default=0)
     features = models.JSONField(default=list, blank=True)  # ["...", "..."]
     limits = models.JSONField(default=dict, blank=True)    # {"max_products": 100}

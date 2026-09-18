@@ -276,7 +276,7 @@ def upgrade_plan_view(request):
     payload = create_stk_payload(
         amount=plan.price,
         phone_number=phone_number,
-        account_reference=f"PLAN{plan.tier}",
+        account_reference=f"PLAN {plan.name.upper()}",
         transaction_description=f"{plan.name} plan",
     )
 

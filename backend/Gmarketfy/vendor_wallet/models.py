@@ -1,6 +1,8 @@
 from django.db import models
 
 import uuid
+
+
 class WalletLedgerEntry(models.Model):
     """
     Append-only ledger of every shilling in or out of a vendor's wallet.
@@ -56,50 +58,38 @@ class WalletLedgerEntry(models.Model):
 
 class VendorPayoutDestination(models.Model):
     """
-    Where a vendor's withdrawals go. One row per vendor, upserted on change.
+    Where a vendor's withdrawals go. One row per vendor.
 
-    Kept separate from the audit table so the "current" lookup is a single
-    row read — the audit table grows unbounded, this stays O(1).
+    B2C only — money is sent to an M-Pesa phone number, not a till or
+    paybill. The optional label helps the vendor distinguish between
+    multiple numbers (e.g. "Personal M-Pesa", "Business line").
     """
-    TYPE_TILL    = "till"
-    TYPE_PAYBILL = "paybill"
-    TYPE_CHOICES = [
-        (TYPE_TILL,    "Till"),
-        (TYPE_PAYBILL, "Paybill"),
-    ]
-
-    vendor_id      = models.CharField(max_length=200, unique=True, db_index=True)
-    type           = models.CharField(max_length=10, choices=TYPE_CHOICES)
-    number         = models.CharField(max_length=20)
-    account_number = models.CharField(max_length=50, blank=True, null=True)  # paybill only
-    phone          = models.CharField(max_length=15, blank=True, null=True)  # M-Pesa SIM that owns the till/paybill
-    created_at     = models.DateTimeField(auto_now_add=True)
-    updated_at     = models.DateTimeField(auto_now=True)
+    vendor_id  = models.CharField(max_length=200, unique=True, db_index=True)
+    phone      = models.CharField(max_length=15)
+    label      = models.CharField(max_length=50, blank=True, default="My M-Pesa")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        suffix = f" / {self.account_number}" if self.account_number else ""
-        return f"{self.vendor_id} → {self.type} {self.number}{suffix}"
+        return f"{self.vendor_id} → {self.phone}"
 
 
 class PayoutDestinationChange(models.Model):
     """
     Append-only audit of every payout-destination change.
 
-    Security-sensitive: if a vendor's M-Pesa destination is ever compromised,
+    Security-sensitive: if a vendor's M-Pesa number is ever compromised,
     this is the record of exactly when and what changed.
     """
-    vendor_id          = models.CharField(max_length=200, db_index=True)
-    old_type           = models.CharField(max_length=10, blank=True, null=True)
-    old_number         = models.CharField(max_length=20, blank=True, null=True)
-    old_account_number = models.CharField(max_length=50, blank=True, null=True)
-    old_phone          = models.CharField(max_length=15, blank=True, null=True)
+    vendor_id  = models.CharField(max_length=200, db_index=True)
 
-    new_type           = models.CharField(max_length=10)
-    new_number         = models.CharField(max_length=20)
-    new_account_number = models.CharField(max_length=50, blank=True, null=True)
-    new_phone          = models.CharField(max_length=15, blank=True, null=True)
+    old_phone  = models.CharField(max_length=15, blank=True, null=True)
+    old_label  = models.CharField(max_length=50, blank=True, null=True)
 
-    changed_at         = models.DateTimeField(auto_now_add=True)
+    new_phone  = models.CharField(max_length=15)
+    new_label  = models.CharField(max_length=50, blank=True, null=True)
+
+    changed_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-changed_at"]
@@ -115,6 +105,13 @@ class Withdrawal(models.Model):
     """
     One B2C payout to a vendor. Debits the wallet ledger up front so the
     vendor can't double-spend; on failure, a reversing credit restores it.
+
+    Fee model:
+      - gmarketfy_fee: static 5% of the gross amount
+      - safaricom_fee_total: Safaricom's B2C charge (KSh 5–13 band)
+      - safaricom_fee_vendor_pays: the portion the vendor covers, based
+        on their plan's safaricom_share
+      - net_amount: what the vendor receives (gross - gmk_fee - vendor's saf share)
     """
     STATUS_PENDING    = "pending"
     STATUS_PROCESSING = "processing"
@@ -133,13 +130,13 @@ class Withdrawal(models.Model):
     fee        = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     net_amount = models.DecimalField(max_digits=12, decimal_places=2)
 
-    # Destination snapshot — never mutate. If the vendor changes their
-    # payout destination later, this record still says where THIS
-    # withdrawal went.
-    destination_type    = models.CharField(max_length=10, blank=True, null=True)
-    destination_number  = models.CharField(max_length=20, blank=True, null=True)
-    destination_account = models.CharField(max_length=50, blank=True, null=True)
-    phone               = models.CharField(max_length=15)
+    # Safaricom B2C fee breakdown
+    safaricom_fee_total             = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    safaricom_fee_vendor_pays       = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    safaricom_fee_gmarketfy_absorbs = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    # Destination snapshot — where THIS withdrawal went, at the time it fired.
+    phone = models.CharField(max_length=15)
 
     status       = models.CharField(max_length=20, default=STATUS_PENDING, choices=STATUS_CHOICES)
     ledger_entry = models.ForeignKey(

@@ -1,11 +1,11 @@
 // ============================================
-// VENDOR DASHBOARD — ORDERS TAB (OPTIMISED)
+// VENDOR ORDERS MODULE
 // ============================================
 
 import {
   db, collection, query, where, orderBy,
   getDocs, getDoc, doc, updateDoc,
-  serverTimestamp, onSnapshot, setDoc ,  arrayUnion, arrayRemove
+  serverTimestamp, onSnapshot, setDoc, arrayUnion, arrayRemove
 } from './firebase-config.js';
 
 import { initDispatchPanel, destroyDispatchPanel } from './dispatch.js';
@@ -24,10 +24,26 @@ let currentProofOrderId = null;
 let ordersUnsub = null;
 let loadingOrderIds = new Set();
 
+
 // =========================
 // STATUS CONFIG
 // =========================
+// Two independent dimensions on every order:
+//
+//   status        — the operational flow (pending → confirmed → assigned → …)
+//   paymentStatus — the money flow ("pending" | "paid"), independent of the above
+//
+// The Django payment callback *prepends* "paid & " to `status` on success
+// (e.g. "confirmed" → "paid & confirmed") so a plain glance at the raw
+// string conveys both facts. That means we need display entries for BOTH
+// raw operational statuses AND their paid-prefixed variants.
+//
+// IMPORTANT: business logic must never compare against a "paid & …"
+// string. Use getOperationalStatus(order) to strip the prefix first.
+// The prefixed entries below exist purely for the badge.
+// =========================
 const STATUS_FLOW = {
+  // --- Pre-payment operational states ---
   pending: {
     label: "Pending", icon: "⏳", color: "bg-yellow-500/15 text-yellow-400",
     next: "confirmed", nextLabel: "Confirm Order", nextIcon: "✅"
@@ -35,11 +51,6 @@ const STATUS_FLOW = {
   confirmed: {
     label: "Confirmed", icon: "✅", color: "bg-blue-500/15 text-blue-400",
     next: null, nextLabel: null, nextIcon: null
-  },
-  // Payment-before-delivery orders land here after client pays
-  paid: {
-    label: "Paid", icon: "💚", color: "bg-emerald-500/15 text-emerald-400",
-    next: "assigned", nextLabel: "Assign Driver", nextIcon: "🚴"
   },
   assigned: {
     label: "Assigned", icon: "🚴", color: "bg-purple-500/15 text-purple-400",
@@ -69,7 +80,6 @@ const STATUS_FLOW = {
     label: "Picked Up", icon: "✅", color: "bg-green-500/15 text-green-400",
     next: null, nextLabel: null, nextIcon: null
   },
-  // Terminal status for payment-before-delivery orders after proof upload
   "paid & delivered": {
     label: "Paid & Delivered", icon: "💚", color: "bg-green-500/15 text-green-400",
     next: null, nextLabel: null, nextIcon: null
@@ -77,74 +87,60 @@ const STATUS_FLOW = {
   cancelled: {
     label: "Cancelled", icon: "❌", color: "bg-red-500/15 text-red-400",
     next: null, nextLabel: null, nextIcon: null
+  },
+
+  // --- Paid-prefixed variants (written by payments_callback) ---
+  "paid & pending": {
+    label: "Paid", icon: "💚", color: "bg-emerald-500/15 text-emerald-400",
+    next: null, nextLabel: null, nextIcon: null
+  },
+  "paid & confirmed": {
+    label: "Paid", icon: "💚", color: "bg-emerald-500/15 text-emerald-400",
+    next: null, nextLabel: null, nextIcon: null
+  },
+  "paid & assigned": {
+    label: "Paid · Assigned", icon: "💚", color: "bg-emerald-500/15 text-emerald-400",
+    next: null, nextLabel: null, nextIcon: null
+  },
+  "paid & out for delivery": {
+    label: "Paid · Out for Delivery", icon: "💚", color: "bg-emerald-500/15 text-emerald-400",
+    next: null, nextLabel: null, nextIcon: null
+  },
+  "paid & proof uploaded": {
+    label: "Paid · Proof Uploaded", icon: "💚", color: "bg-emerald-500/15 text-emerald-400",
+    next: null, nextLabel: null, nextIcon: null
+  },
+  "paid & packaging": {
+    label: "Paid · Packaging", icon: "💚", color: "bg-emerald-500/15 text-emerald-400",
+    next: null, nextLabel: null, nextIcon: null
+  },
+  "paid & ready": {
+    label: "Paid · Ready", icon: "💚", color: "bg-emerald-500/15 text-emerald-400",
+    next: null, nextLabel: null, nextIcon: null
+  },
+  "paid & picked up": {
+    label: "Paid · Picked Up", icon: "💚", color: "bg-green-500/15 text-green-400",
+    next: null, nextLabel: null, nextIcon: null
   }
 };
 
-// "paid" is NOT terminal — it still needs driver assignment + delivery
-const TERMINAL_STATUSES = new Set(["delivered", "picked up", "cancelled", "paid & delivered"]);
+// A paid-but-unfulfilled order is not terminal — the vendor still needs to
+// dispatch/complete it. Only these five statuses close an order out.
+const TERMINAL_STATUSES = new Set([
+  "delivered",
+  "picked up",
+  "cancelled",
+  "paid & delivered",
+  "paid & picked up",
+]);
 
-// Helper: is this a payment-before-delivery order?
-function isPayBeforeDelivery(order) {
-  return order?.delivery?.enabled && order?.paymentTiming === "before";
-}
-
-// Helper: is this order eligible for the bulk selector (delivery, no driver, awaiting assignment)?
-function isUnassignedDelivery(order) {
-  return (
-    order.delivery?.enabled &&
-    !order.driverId &&
-    order.status === "confirmed" &&
-    (!isPayBeforeDelivery(order) || isPaid(order))   // 👈 gate pay-before orders on real payment
-  );
-}
-
-// =========================
-// DRIVER ↔ CLIENT VISIBILITY
-// =========================
-// Only remove a client from a driver's assignedClientIds if they have
-// no OTHER active order with that same driver — otherwise we'd cut
-// their read access while a second delivery is still in progress.
-async function maybeRemoveClientFromDriver(driverId, clientId) {
-  if (!driverId || !clientId) return;
-  try {
-    const stillActive = await getDocs(query(
-      collection(db, "orders"),
-      where("driverId", "==", driverId),
-      where("clientId", "==", clientId),
-      where("status", "not-in", ["delivered", "paid & delivered", "picked up", "cancelled"])
-    ));
-    if (stillActive.empty) {
-      await updateDoc(doc(db, "drivers", driverId), {
-        assignedClientIds: arrayRemove(clientId)
-      });
-    }
-  } catch (e) {
-    console.warn("maybeRemoveClientFromDriver failed:", e);
-  }
-}
-
-// =========================
-// CACHE LAYER
-// =========================
-const _docCache = new Map();
-
-async function cachedGet(colName, id) {
-  if (!id) return null;
-  const key = `${colName}/${id}`;
-  if (_docCache.has(key)) return _docCache.get(key);
-  try {
-    const snap = await getDoc(doc(db, colName, id));
-    const data = snap.exists() ? snap.data() : null;
-    if (data) _docCache.set(key, data);
-    return data;
-  } catch {
-    return null;
-  }
-}
+// Firestore's `not-in` accepts up to 10 values; keep these in sync with
+// TERMINAL_STATUSES for order-listener exclusions.
+const TERMINAL_LIST = Array.from(TERMINAL_STATUSES);
 
 
 // =========================
-// LOCAL HELPERS
+// HELPERS
 // =========================
 function escHTML(str) {
   const div = document.createElement("div");
@@ -152,13 +148,56 @@ function escHTML(str) {
   return div.innerHTML;
 }
 
+function isPayBeforeDelivery(order) {
+  return order?.delivery?.enabled && order?.paymentTiming === "before";
+}
+
+// Payment state is tracked separately in `paymentStatus`. The "paid & "
+// prefix on `status` is a display artifact — strip it anywhere we branch
+// on the operational flow.
+function getOperationalStatus(order) {
+  const raw = order?.status || "pending";
+  return raw.startsWith("paid & ") ? raw.slice(7) : raw;
+}
+
+// Order waiting on vendor attention: brand new, or paid but not yet confirmed.
+function isAwaitingVendorAction(order) {
+  const s = order?.status || "pending";
+  return s === "pending" || s === "paid & pending";
+}
+
+// Delivered but never physically fulfilled — eligible for assignment.
+function isUnassignedDelivery(order) {
+  const opStatus = getOperationalStatus(order);
+  return (
+    order.delivery?.enabled &&
+    !order.driverId &&
+    opStatus === "confirmed" &&
+    (!isPayBeforeDelivery(order) || isPaid(order))
+  );
+}
+
 // Source of truth for "has this order been paid" — separate from delivery status.
 // Falls back to legacy status values for orders created before paymentStatus existed.
 function isPaid(order) {
-  return order?.paymentStatus === "paid"
-    || (!("paymentStatus" in (order || {})) && (order?.status === "paid" || order?.status === "paid & delivered" || order?.status === "picked up"));
+  if (order?.paymentStatus === "paid") return true;
+  if ("paymentStatus" in (order || {})) return false;   // paymentStatus exists but isn't "paid"
+
+  // Legacy orders with no paymentStatus field
+  const s = order?.status || "";
+  return s === "paid" || s === "paid & delivered" || s === "paid & picked up";
 }
 
+// Do we already render "Paid" in the status badge itself?
+function statusBadgeAlreadyShowsPaid(order) {
+  return (order?.status || "").startsWith("paid & ")
+    || order?.status === "paid";
+}
+
+
+// =========================
+// MODAL / TIME HELPERS
+// =========================
 function openModal(id) {
   const overlay = document.getElementById(id);
   if (!overlay) return;
@@ -183,6 +222,52 @@ function timeAgo(date) {
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
   if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
   return new Date(date).toLocaleDateString();
+}
+
+
+// =========================
+// DRIVER ↔ CLIENT VISIBILITY
+// =========================
+// Only remove a client from a driver's assignedClientIds if they have no
+// OTHER active order with that driver — otherwise we'd cut their read
+// access while a second delivery is still in progress.
+async function maybeRemoveClientFromDriver(driverId, clientId) {
+  if (!driverId || !clientId) return;
+  try {
+    const stillActive = await getDocs(query(
+      collection(db, "orders"),
+      where("driverId", "==", driverId),
+      where("clientId", "==", clientId),
+      where("status", "not-in", TERMINAL_LIST)
+    ));
+    if (stillActive.empty) {
+      await updateDoc(doc(db, "drivers", driverId), {
+        assignedClientIds: arrayRemove(clientId)
+      });
+    }
+  } catch (e) {
+    console.warn("maybeRemoveClientFromDriver failed:", e);
+  }
+}
+
+
+// =========================
+// CACHE LAYER
+// =========================
+const _docCache = new Map();
+
+async function cachedGet(colName, id) {
+  if (!id) return null;
+  const key = `${colName}/${id}`;
+  if (_docCache.has(key)) return _docCache.get(key);
+  try {
+    const snap = await getDoc(doc(db, colName, id));
+    const data = snap.exists() ? snap.data() : null;
+    if (data) _docCache.set(key, data);
+    return data;
+  } catch {
+    return null;
+  }
 }
 
 
@@ -441,7 +526,8 @@ function injectModals() {
   });
 
   // ---- Submit proof ----
-  // Resolves to "paid & delivered" if payBefore order, else "proof uploaded"
+  // Pay-before order → terminal "paid & delivered"
+  // Everything else → "proof uploaded" (driver still might upload separately)
   document.getElementById("submit-proof-btn")?.addEventListener("click", async () => {
     if (!currentProofOrderId) return;
     const proofFileInput = document.getElementById("proof-file-input");
@@ -461,7 +547,6 @@ function injectModals() {
       const compressed = await compressImage(file, 800, 0.65);
       const caption = captionInput?.value?.trim() || "";
 
-      // Determine terminal status based on payment type
       const order = allOrders.find(o => o.id === currentProofOrderId);
       const finalStatus = isPayBeforeDelivery(order) ? "paid & delivered" : "proof uploaded";
 
@@ -478,8 +563,6 @@ function injectModals() {
         createdAt: serverTimestamp()
       });
 
-      // terminal for pay-before orders — client no longer needs driver visibility
-      // once this order is done, unless another active order with this driver exists
       if (finalStatus === "paid & delivered" && order.driverId) {
         await maybeRemoveClientFromDriver(order.driverId, order.clientId);
       }
@@ -701,8 +784,10 @@ window.loadOrdersTab = function () {
 // =========================
 // UPDATE BADGE
 // =========================
+// Counts both "pending" (new) AND "paid & pending" (paid, but vendor
+// hasn't confirmed yet — still needs their attention).
 function updateOrdersBadge() {
-  const pendingCount = allOrders.filter(o => o.status === "pending").length;
+  const pendingCount = allOrders.filter(isAwaitingVendorAction).length;
   const badge = document.querySelector(".orders-badge");
   if (badge) {
     badge.textContent = pendingCount;
@@ -724,21 +809,18 @@ function updateBulkAssignButton() {
   }
 
   if (!bulkBtn) {
-    const ordersContainer = document.getElementById("orders-list")?.parentElement;
-    if (ordersContainer) {
-      bulkBtn = document.createElement("button");
-      bulkBtn.id = "bulk-assign-btn";
-      bulkBtn.className = "fixed bottom-5 left-1/2 -translate-x-1/2 z-20 px-6 py-3 rounded-2xl bg-indigo-500 text-white font-semibold text-sm hover:bg-indigo-600 transition shadow-xl flex items-center gap-2 animate-pulse";
-      bulkBtn.innerHTML = `
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-        </svg>
-        <span id="bulk-count-display">${unassigned.length}</span> unassigned
-      `;
-      bulkBtn.addEventListener("click", openBulkAssignModal);
-      document.body.appendChild(bulkBtn);
-    }
+    bulkBtn = document.createElement("button");
+    bulkBtn.id = "bulk-assign-btn";
+    bulkBtn.className = "fixed bottom-5 left-1/2 -translate-x-1/2 z-20 px-6 py-3 rounded-2xl bg-indigo-500 text-white font-semibold text-sm hover:bg-indigo-600 transition shadow-xl flex items-center gap-2 animate-pulse";
+    bulkBtn.innerHTML = `
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+      <span id="bulk-count-display">${unassigned.length}</span> unassigned
+    `;
+    bulkBtn.addEventListener("click", openBulkAssignModal);
+    document.body.appendChild(bulkBtn);
   } else {
     document.getElementById("bulk-count-display").textContent = unassigned.length;
   }
@@ -755,7 +837,8 @@ function renderFilteredOrders() {
 
   let filtered = allOrders;
   if (activeFilter === "pending") {
-    filtered = allOrders.filter(o => o.status === "pending");
+    // "Needs vendor action" — new OR paid-but-unconfirmed
+    filtered = allOrders.filter(isAwaitingVendorAction);
   } else if (activeFilter === "active") {
     filtered = allOrders.filter(o => !TERMINAL_STATUSES.has(o.status));
   } else if (activeFilter === "completed") {
@@ -787,15 +870,17 @@ function buildOrderCard(order, index = 0) {
   const status = order.status || "pending";
   const statusInfo = STATUS_FLOW[status] || STATUS_FLOW.pending;
 
-  
   const isDelivery = order.delivery?.enabled;
   const address = order.delivery?.address;
   const driverName = order.driverName || null;
   const payBefore = isPayBeforeDelivery(order);
 
-  // Show bulk selector for confirmed delivery orders (normal) OR paid delivery orders (pay-before)
   const showSelector = isUnassignedDelivery(order);
   const isSelected = selectedOrderIds.has(order.id);
+
+  // Only show the extra "Paid" pill if the status badge isn't already
+  // showing it (which it does when status starts with "paid & ").
+  const showPaidPill = isPaid(order) && !statusBadgeAlreadyShowsPaid(order);
 
   const card = document.createElement("div");
   card.className = `w-full max-w-md bg-[#111318] rounded-2xl overflow-hidden border transition-all duration-300 flex flex-col order-card ${
@@ -816,13 +901,13 @@ function buildOrderCard(order, index = 0) {
       }
       <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
       <span class="absolute top-3 right-3 text-[10px] px-2.5 py-1 rounded-full font-semibold ${statusInfo.color} backdrop-blur-sm border border-white/5">
-      ${statusInfo.icon} ${statusInfo.label}
-    </span>
-    ${isPaid(order) && !["paid", "paid & delivered", "picked up"].includes(status) ? `
-      <span class="absolute top-11 right-3 text-[10px] px-2.5 py-1 rounded-full font-semibold bg-emerald-500/15 text-emerald-400 backdrop-blur-sm border border-emerald-500/15">
-        💚 Paid
+        ${statusInfo.icon} ${statusInfo.label}
       </span>
-    ` : ""}
+      ${showPaidPill ? `
+        <span class="absolute top-11 right-3 text-[10px] px-2.5 py-1 rounded-full font-semibold bg-emerald-500/15 text-emerald-400 backdrop-blur-sm border border-emerald-500/15">
+          💚 Paid
+        </span>
+      ` : ""}
       ${isDelivery
         ? `<span class="absolute top-3 left-3 text-[10px] px-2.5 py-1 rounded-full bg-black/50 text-white/60 backdrop-blur-sm">🚚 Delivery</span>`
         : `<span class="absolute top-3 left-3 text-[10px] px-2.5 py-1 rounded-full bg-black/50 text-white/60 backdrop-blur-sm">🏪 Pickup</span>`
@@ -902,7 +987,7 @@ function buildOrderCard(order, index = 0) {
           <p class="text-base font-bold text-emerald-400">KSh ${(order.subtotal || 0).toLocaleString()}</p>
         </div>
         <div class="flex gap-2">
-          ${getActionButtons(order, status, isDelivery, payBefore)}
+          ${getActionButtons(order, isDelivery, payBefore)}
         </div>
       </div>
     </div>`;
@@ -919,7 +1004,7 @@ function buildOrderCard(order, index = 0) {
     });
   }
 
-  bindOrderActions(card, order, status, isDelivery);
+  bindOrderActions(card, order);
   return card;
 }
 
@@ -940,45 +1025,42 @@ function toggleOrderSelection(orderId) {
 // =========================
 // GET ACTION BUTTONS
 // =========================
-function getActionButtons(order, status, isDelivery, payBefore) {
+// Uses the operational (unprefixed) status so a paid mid-flow order
+// still exposes the right action.
+function getActionButtons(order, isDelivery, payBefore) {
+  const opStatus = getOperationalStatus(order);
   const spinner = `<svg class="btn-spinner hidden w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>`;
   const buttons = [];
 
-  // Confirm (any pending order)
-  if (status === "pending") {
+  // ---- Confirm (pending, whether paid or not) ----
+  if (opStatus === "pending") {
     buttons.push(`<button class="order-action-btn px-3 py-2 rounded-lg bg-emerald-500/15 text-emerald-400 text-[11px] font-semibold hover:bg-emerald-500/25 border border-emerald-500/15 transition flex items-center gap-1.5" data-action="confirm"><span class="btn-label">✅ Confirm</span>${spinner}</button>`);
   }
 
-  // Normal delivery: confirmed → assign
-  if (isDelivery && status === "confirmed" && !payBefore) {
-    buttons.push(`<button class="order-action-btn px-3 py-2 rounded-lg bg-purple-500/15 text-purple-400 text-[11px] font-semibold hover:bg-purple-500/25 border border-purple-500/15 transition" data-action="assign">🚴 Assign</button>`);
+  // ---- Delivery + confirmed: assign flow ----
+  if (isDelivery && opStatus === "confirmed") {
+    if (!payBefore) {
+      // Not pay-before → assign is always allowed
+      buttons.push(`<button class="order-action-btn px-3 py-2 rounded-lg bg-purple-500/15 text-purple-400 text-[11px] font-semibold hover:bg-purple-500/25 border border-purple-500/15 transition" data-action="assign">🚴 Assign</button>`);
+    } else if (isPaid(order)) {
+      // Pay-before and money has landed → assign
+      buttons.push(`<button class="order-action-btn px-3 py-2 rounded-lg bg-purple-500/15 text-purple-400 text-[11px] font-semibold hover:bg-purple-500/25 border border-purple-500/15 transition" data-action="assign">🚴 Assign</button>`);
+    } else {
+      // Pay-before, not yet paid → waiting on client
+      buttons.push(`<span class="px-3 py-2 rounded-lg bg-yellow-500/10 text-yellow-400/70 text-[11px] border border-yellow-500/10">⏳ Awaiting payment</span>`);
+    }
   }
 
-    // Pay-before delivery: confirmed but NOT paid yet → awaiting payment
-  if (isDelivery && status === "confirmed" && payBefore && !isPaid(order)) {
-    buttons.push(`<span class="px-3 py-2 rounded-lg bg-yellow-500/10 text-yellow-400/70 text-[11px] border border-yellow-500/10">⏳ Awaiting payment</span>`);
-  }
-
-  // Pay-before delivery: confirmed AND paid → safe to assign
-  if (isDelivery && status === "confirmed" && payBefore && isPaid(order)) {
-    buttons.push(`<button class="order-action-btn px-3 py-2 rounded-lg bg-purple-500/15 text-purple-400 text-[11px] font-semibold hover:bg-purple-500/25 border border-purple-500/15 transition" data-action="assign">🚴 Assign</button>`);
-  }
-  // Pickup flow
-  if (!isDelivery && status === "confirmed") {
+  // ---- Pickup flow ----
+  if (!isDelivery && opStatus === "confirmed") {
     buttons.push(`<button class="order-action-btn px-3 py-2 rounded-lg bg-blue-500/15 text-blue-400 text-[11px] font-semibold hover:bg-blue-500/25 border border-blue-500/15 transition flex items-center gap-1.5" data-action="packaging"><span class="btn-label">📦 Package</span>${spinner}</button>`);
   }
-  if (status === "packaging") {
+  if (opStatus === "packaging") {
     buttons.push(`<button class="order-action-btn px-3 py-2 rounded-lg bg-indigo-500/15 text-indigo-400 text-[11px] font-semibold hover:bg-indigo-500/25 border border-indigo-500/15 transition flex items-center gap-1.5" data-action="ready"><span class="btn-label">📍 Ready</span>${spinner}</button>`);
   }
 
-  // Proof upload (out for delivery)
-  if (status === "out for delivery") {
-    //this feature is removed so that only drivers can upload proof, not vendors. Vendors can only view the proof uploaded by drivers.
-    //buttons.push(`<button class="order-action-btn px-3 py-2 rounded-lg bg-pink-500/15 text-pink-400 text-[11px] font-semibold hover:bg-pink-500/25 border border-pink-500/15 transition" data-action="upload-proof">📸 Proof</button>`);
-  }
-
-  // Note button (any non-terminal order)
-  if (!TERMINAL_STATUSES.has(status)) {
+  // ---- Note button (any non-terminal order) ----
+  if (!TERMINAL_STATUSES.has(opStatus)) {
     buttons.push(`<button class="order-action-btn px-3 py-2 rounded-lg bg-white/5 text-white/50 text-[11px] font-semibold hover:bg-white/10 border border-white/5 transition" data-action="add-note">📝</button>`);
   }
 
@@ -989,7 +1071,7 @@ function getActionButtons(order, status, isDelivery, payBefore) {
 // =========================
 // BIND ORDER ACTIONS
 // =========================
-function bindOrderActions(card, order, status, isDelivery) {
+function bindOrderActions(card, order) {
   card.querySelectorAll(".order-action-btn").forEach(btn => {
     btn.addEventListener("click", async () => {
       const action = btn.dataset.action;
@@ -1127,13 +1209,14 @@ function compressImage(file, maxW = 800, quality = 0.65) {
 
 // =========================
 // ASSIGN DRIVER MODAL (single order)
-// Guard fires if: delivery enabled + paymentTiming === "before" + NOT yet paid
-// If status is already "paid", payment is confirmed — skip the guard
+// Guard fires only when: pay-before delivery + not yet paid.
 // =========================
 async function openAssignDriverModal(orderId) {
   const order = allOrders.find(o => o.id === orderId);
+  if (!order) return;
+
   const payBefore = isPayBeforeDelivery(order);
-  const alreadyPaid = isPaid(order);   // 👈 was: order?.status === "paid"
+  const alreadyPaid = isPaid(order);
 
   if (payBefore && !alreadyPaid) {
     showPaymentGuard(
@@ -1161,8 +1244,9 @@ async function openAssignDriverModal_proceed(orderId) {
   confirmBtn.disabled = true;
   openModal("assign-driver-overlay");
 
-      //remember dont fetch drivers who are unavailabe fix..........................
-      try {
+  try {
+    // Only fetch drivers who are free — dispatching to an on-road or
+    // off-duty driver would silently queue the order with no one moving.
     const snap = await getDocs(query(
       collection(db, "drivers"),
       where("vendor_id", "==", window.vendorId),
@@ -1173,7 +1257,7 @@ async function openAssignDriverModal_proceed(orderId) {
       list.innerHTML = `
         <div class="text-center py-6">
           <p class="text-2xl mb-2">🚚</p>
-          <p class="text-xs text-white/30">No drivers are Available Right now.</p>
+          <p class="text-xs text-white/30">No drivers are available right now.</p>
         </div>`;
       return;
     }
@@ -1181,11 +1265,7 @@ async function openAssignDriverModal_proceed(orderId) {
     const fragment = document.createDocumentFragment();
     snap.forEach(d => {
       const driver = { id: d.id, ...d.data() };
-      const statusClass = driver.status === "free"
-        ? "bg-emerald-500/15 text-emerald-400"
-        : driver.status === "on-road"
-          ? "bg-orange-500/15 text-orange-400"
-          : "bg-white/10 text-white/40";
+      const statusClass = "bg-emerald-500/15 text-emerald-400";
 
       const item = document.createElement("div");
       item.className = "flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:border-indigo-500/30 transition-all duration-200";
@@ -1222,8 +1302,7 @@ async function openAssignDriverModal_proceed(orderId) {
 
 // =========================
 // OPEN BULK ASSIGN MODAL
-// Guard fires only for orders where payment hasn't been received yet
-// (status === "paid" orders are already cleared — no guard needed)
+// Guard fires only for orders where payment hasn't landed yet.
 // =========================
 async function openBulkAssignModal() {
   if (selectedOrderIds.size === 0) {
@@ -1231,12 +1310,11 @@ async function openBulkAssignModal() {
     return;
   }
 
-  // Only warn about pay-before orders that are still "confirmed" (not yet paid)
-const unpaidPayBeforeOrders = allOrders.filter(o =>
-  selectedOrderIds.has(o.id) &&
-  isPayBeforeDelivery(o) &&
-  !isPaid(o)   // 👈 was: o.status !== "paid"
-);
+  const unpaidPayBeforeOrders = allOrders.filter(o =>
+    selectedOrderIds.has(o.id) &&
+    isPayBeforeDelivery(o) &&
+    !isPaid(o)
+  );
 
   if (unpaidPayBeforeOrders.length > 0) {
     const names = unpaidPayBeforeOrders.map(o => o.productName || `#${o.id.slice(-6).toUpperCase()}`);
@@ -1263,6 +1341,8 @@ async function openBulkAssignModal_proceed() {
   openModal("bulk-assign-overlay");
 
   try {
+    // Bulk picker shows ALL drivers (including on-road) — the vendor may
+    // know a driver is finishing their current run and will be free next.
     const snap = await getDocs(query(
       collection(db, "drivers"),
       where("vendor_id", "==", window.vendorId)
@@ -1331,31 +1411,31 @@ document.getElementById("confirm-assign-btn")?.addEventListener("click", async (
 
   loadingOrderIds.add(currentAssignOrderId);
 
-try {
-  const order = allOrders.find(o => o.id === currentAssignOrderId);
-  await Promise.all([
-    updateDoc(doc(db, "orders", currentAssignOrderId), {
-      driverId: selectedDriverId,
-      status: "assigned",
-      updatedAt: serverTimestamp()
-    }),
-    updateDoc(doc(db, "drivers", selectedDriverId), {
-      assignedClientIds: arrayUnion(order.clientId)
-    })
-  ]);
-  closeModal("assign-driver-overlay");
-  updateDriverStats(selectedDriverId);
-  window.showNotif?.({ type: "success", title: "Driver Assigned", message: "Driver has been assigned to this order." });
-} catch (e) {
+  try {
+    const order = allOrders.find(o => o.id === currentAssignOrderId);
+    await Promise.all([
+      updateDoc(doc(db, "orders", currentAssignOrderId), {
+        driverId: selectedDriverId,
+        status: "assigned",
+        updatedAt: serverTimestamp()
+      }),
+      updateDoc(doc(db, "drivers", selectedDriverId), {
+        assignedClientIds: arrayUnion(order.clientId)
+      })
+    ]);
+    closeModal("assign-driver-overlay");
+    updateDriverStats(selectedDriverId);
+    window.showNotif?.({ type: "success", title: "Driver Assigned", message: "Driver has been assigned to this order." });
+  } catch (e) {
     console.error("Assign failed:", e);
     window.showNotif?.({ type: "error", title: "Failed", message: "Could not assign driver." });
     btn.disabled = false;
     btn.textContent = originalText;
   } finally {
     loadingOrderIds.delete(currentAssignOrderId);
-      setTimeout(()=>{
-              btn.innerHTML = 'Assign Driver';
-      } , 1000);
+    setTimeout(() => {
+      btn.innerHTML = "Assign Driver";
+    }, 1000);
   }
 });
 

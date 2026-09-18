@@ -3,54 +3,45 @@
  * -----------------------------------------------------------------------
  * Vault tab: balance, plan, payout destination, withdrawals.
  *
- * Django is the source of truth for money AND plans. Firebase holds only:
- *   - the "withdrawal" collection (live history list)
- *   - the "vendorsPaymentInformation" doc (payout destination)
- *   - the "vendors" doc (read-only, for phone prefill)
+ * Django is the source of truth for money AND plans. Firebase holds only
+ * the vendors doc (read-only, used for phone prefill).
  *
- * Plans live entirely in Django's vendors_plans app. Firebase knows nothing
- * about which plan a vendor is on.
+ * B2C only — money is sent to an M-Pesa phone number, not a till/paybill.
+ * Fee model: static 5% Gmarketfy cut + plan-based Safaricom fee split.
+ * Fee preview is computed client-side to avoid a network round-trip on
+ * every keystroke. Backend re-validates authoritatively on submit.
  * -----------------------------------------------------------------------
  */
 
-import {
-  doc,
-  getDoc,
-  setDoc,
-  collection,
-  query,
-  where,
-  orderBy,
-  limit,
-  onSnapshot,
-  serverTimestamp,
-  db,
-  auth,
-} from "./firebase-config.js";
-import {
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-} from "./firebase-config.js";
-import { cachedGet } from "./shared.js";
+import { doc, getDoc, db, auth } from "./firebase-config.js";
+import { EmailAuthProvider, reauthenticateWithCredential } from "./firebase-config.js";
+import { cachedGet, invalidateCache } from "./shared.js";
 
 let vendorId = null;
 
 // --- API endpoints ---------------------------------------------------------
-// Dev: Live Server on :5500, Django on :8000. Prod: same origin.
-const API_ORIGIN =
-  window.location.origin.includes(":5500")
-    ? "http://127.0.0.1:8000"
-    : "";
+const API_ORIGIN = window.location.origin.includes(":5500")
+  ? "http://127.0.0.1:8000"
+  : "";
 
 const API_BASE = `${API_ORIGIN}/api/vault`;
-const PLANS_API_BASE = `${API_ORIGIN}/api/vendors/plans`;  // plans (Django source of truth)
+const PLANS_API_BASE = `${API_ORIGIN}/api/vendors/plans`;
 
 // --- Polling config --------------------------------------------------------
 const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 90000;
 
-// --- Client-side fee preview only (Django recalculates authoritatively) ----
-const GMARKETFY_FEE_RATE = 0.05;
+// --- Fee constants (must stay in sync with backend services.py) -----------
+const GMARKETFY_FEE_RATE = 0.05;   // 5% flat
+
+// Safaricom B2C fee by amount band (Option 1 — Standard). Capped at KSh 13.
+const SAFARICOM_BANDS = [
+  { max: 100,    fee: 0 },
+  { max: 1500,   fee: 5 },
+  { max: 5000,   fee: 9 },
+  { max: 20000,  fee: 11 },
+  { max: 250000, fee: 13 },
+];
 
 // -------------------------------------------------------------------------
 // State
@@ -58,23 +49,29 @@ const GMARKETFY_FEE_RATE = 0.05;
 let state = {
   balance: 0,
   pendingBalance: 0,
-  plan: null,             // current plan object from Django
-  availablePlans: [],     // all active plans from Django
+  plan: null,
+  availablePlans: [],
   payout: null,
-  vendorPhone: null,      // for phone prefill in the upgrade modal
+  vendorPhone: null,
 };
 
-let withdrawalsUnsub = null;
 let pendingPayoutSelection = null;
+let wasOverBalance = false;   // fire the "too high" notif once per crossing
 
-// Upgrade modal runtime
-let upgradeEls = null;          // { overlay, panel, body }
-let pollTimer = null;
-let pollStartedAt = 0;
-let currentUpgradeCtx = null;   // { plan, currentPlan, changeType, phone, transactionReference }
+
+// Plan upgrade modal runtime
+let upgradeEls = null;
+let planPollTimer = null;
+let planPollStartedAt = 0;
+let currentUpgradeCtx = null;
+
+// Withdrawal progress modal runtime
+let wdProgressEls = null;
+let wdPollTimer = null;
+let currentWithdrawalCtx = null;
 
 // -------------------------------------------------------------------------
-// Init — call this when the Vault tab is opened / on dashboard load
+// Init
 // -------------------------------------------------------------------------
 export async function initVault() {
   vendorId = window.vendorId;
@@ -88,8 +85,6 @@ export async function initVault() {
   bindStaticListeners();
   injectPayoutHistoryButton();
 
-
-  // Plans — critical, must succeed.
   const [currentPlan, plansList] = await Promise.all([
     fetchCurrentPlan().catch((e) => { console.error("current plan:", e); return null; }),
     fetchAvailablePlans().catch((e) => { console.error("plans list:", e); return []; }),
@@ -98,9 +93,6 @@ export async function initVault() {
   state.availablePlans = plansList;
   renderPlan();
 
-
-
-  // Payout destination from Django (source of truth for money).
   try {
     const payout = await fetchPayoutDestination();
     state.payout = payout;
@@ -109,7 +101,6 @@ export async function initVault() {
     console.error("payout fetch failed:", e);
   }
 
-  // Vendor phone — still from Firebase (used for the plan-upgrade phone prefill).
   try {
     const vendorDoc = await getDoc(doc(db, "vendors", vendorId));
     state.vendorPhone = vendorDoc.exists() ? (vendorDoc.data().phone || null) : null;
@@ -117,26 +108,19 @@ export async function initVault() {
     console.error("vendor phone fetch failed:", e);
   }
 
-  // Vault summary — separate app, not built yet. Fail soft.
   try {
     const summary = await fetchVaultSummary();
     state.balance = summary.balance ?? 0;
     state.pendingBalance = summary.pendingBalance ?? 0;
     renderBalance();
   } catch (e) {
-    console.warn("vault summary not available (backend not built yet):", e);
+    console.warn("vault summary unavailable:", e);
     document.getElementById("vault-balance").textContent = "KSh —";
     document.getElementById("vault-pending-balance").textContent = "—";
   }
 
-  // Withdrawals live feed — Firebase, fail soft.
-  try {
-    subscribeToWithdrawals();
-  } catch (e) {
-    console.error("withdrawals subscribe:", e);
-  }
+  loadWithdrawalsList();
 
-  // Resume an in-flight payment if one exists.
   try {
     const pending = await checkPendingPayment();
     if (pending) resumePendingPayment(pending);
@@ -145,6 +129,9 @@ export async function initVault() {
   }
 }
 
+// -------------------------------------------------------------------------
+// Fetchers
+// -------------------------------------------------------------------------
 async function fetchVaultSummary() {
   return cachedGet(`vault-summary:${vendorId}`, async () => {
     const idToken = await auth.currentUser.getIdToken();
@@ -152,7 +139,7 @@ async function fetchVaultSummary() {
       headers: { Authorization: `Bearer ${idToken}` },
     });
     if (!res.ok) throw new Error(`Vault summary failed: ${res.status}`);
-    return res.json(); // { balance, pendingBalance, plan? }
+    return res.json();
   });
 }
 
@@ -163,7 +150,7 @@ async function fetchCurrentPlan() {
   });
   if (!res.ok) throw new Error(`Current plan fetch failed: ${res.status}`);
   const data = await res.json();
-  return data.plan; // always present — Basic/Free is returned when no sub exists
+  return data.plan;
 }
 
 async function fetchAvailablePlans() {
@@ -207,7 +194,7 @@ async function checkPendingPayment() {
     const recent = (data.payments || [])[0];
     if (!recent || recent.status !== "Initialized") return null;
     const age = Date.now() - new Date(recent.created_at).getTime();
-    if (age > 15 * 60 * 1000) return null; // stale, don't resume
+    if (age > 15 * 60 * 1000) return null;
     return recent;
   } catch {
     return null;
@@ -215,7 +202,37 @@ async function checkPendingPayment() {
 }
 
 // -------------------------------------------------------------------------
-// Render: balance (unchanged)
+// Fee calculation — mirrors backend services.calculate_withdrawal_charges
+// -------------------------------------------------------------------------
+function safaricomFeeFor(amount) {
+  const whole = Math.round(amount);
+  for (const band of SAFARICOM_BANDS) {
+    if (whole <= band.max) return band.fee;
+  }
+  return 13;
+}
+
+function computeWithdrawalCharges(amount) {
+  const wholeAmount = Math.round(amount);
+  const gmarketfy_fee = Math.round(wholeAmount * GMARKETFY_FEE_RATE);
+
+  const saf_total = safaricomFeeFor(wholeAmount);
+  const g_share = Number(state.plan?.limits?.safaricom_share ?? 0);
+  const saf_vendor_pays = Math.round(saf_total * (1 - g_share));
+
+  const net_to_vendor = wholeAmount - gmarketfy_fee - saf_vendor_pays;
+
+  return {
+    amount: wholeAmount,
+    gmarketfy_fee,
+    safaricom_fee_total: saf_total,
+    safaricom_fee_vendor_pays: saf_vendor_pays,
+    net_to_vendor,
+  };
+}
+
+// -------------------------------------------------------------------------
+// Render: balance
 // -------------------------------------------------------------------------
 function renderBalance() {
   document.getElementById("vault-balance").textContent = formatKsh(state.balance);
@@ -225,7 +242,7 @@ function renderBalance() {
 }
 
 // -------------------------------------------------------------------------
-// Render: plan cards — uses state.plan.slug from Django
+// Render: plan cards
 // -------------------------------------------------------------------------
 function renderPlan() {
   const currentSlug = state.plan?.slug;
@@ -246,7 +263,6 @@ function renderPlan() {
       btn.disabled = true;
       btn.classList.add("opacity-40", "cursor-not-allowed");
     } else {
-      // Determine whether this is upgrade / downgrade / switch for the label
       const target = state.availablePlans.find((p) => p.slug === card.dataset.plan);
       const action = classifyChange(state.plan, target);
       btn.textContent =
@@ -259,7 +275,6 @@ function renderPlan() {
   });
 }
 
-// Compare tier — never compare by price (promos, discounts, price changes).
 function classifyChange(currentPlan, newPlan) {
   if (!newPlan) return "renew";
   if (!currentPlan || currentPlan.tier === 0) {
@@ -271,7 +286,7 @@ function classifyChange(currentPlan, newPlan) {
 }
 
 // -------------------------------------------------------------------------
-// Plan selection — opens the upgrade modal
+// Plan upgrade
 // -------------------------------------------------------------------------
 function handlePlanSelect(targetSlug) {
   const currentSlug = state.plan?.slug;
@@ -279,7 +294,11 @@ function handlePlanSelect(targetSlug) {
 
   const targetPlan = state.availablePlans.find((p) => p.slug === targetSlug);
   if (!targetPlan) {
-    window.showNotif?.("Plan not available. Refresh and try again.", "error");
+    window.showNotif?.({
+      type: "error",
+      title: "Plan unavailable",
+      message: "Refresh and try again.",
+    });
     return;
   }
 
@@ -295,9 +314,6 @@ function handlePlanSelect(targetSlug) {
   setModalState("confirm");
 }
 
-// -------------------------------------------------------------------------
-// Upgrade modal — built dynamically in JS, themed to match the dashboard
-// -------------------------------------------------------------------------
 function injectUpgradeModalStyles() {
   if (document.getElementById("vault-plan-styles")) return;
   const style = document.createElement("style");
@@ -326,6 +342,12 @@ function injectUpgradeModalStyles() {
       from { opacity: 0; transform: translateY(10px); }
       to   { opacity: 1; transform: translateY(0); }
     }
+    @keyframes vault-coin-drop {
+      0%   { transform: translateY(-8px) scale(0.9); opacity: 0; }
+      30%  { transform: translateY(0) scale(1); opacity: 1; }
+      70%  { transform: translateY(0) scale(1); opacity: 1; }
+      100% { transform: translateY(10px) scale(0.9); opacity: 0; }
+    }
     .vault-anim-fade-up { animation: vault-fade-up 0.35s ease-out both; }
     .vault-ring-pulse   { animation: vault-ring-pulse 1.9s ease-out infinite; }
     .vault-phone-ring   { animation: vault-phone-ring 1.6s ease-in-out infinite; transform-origin: 50% 50%; }
@@ -333,6 +355,7 @@ function injectUpgradeModalStyles() {
     .vault-dot:nth-child(2) { animation-delay: 0.15s; }
     .vault-dot:nth-child(3) { animation-delay: 0.3s; }
     .vault-check-path   { stroke-dasharray: 100; animation: vault-check-draw 0.6s ease-out forwards; }
+    .vault-coin         { animation: vault-coin-drop 1.6s ease-in-out infinite; display: inline-block; }
   `;
   document.head.appendChild(style);
 }
@@ -380,11 +403,7 @@ function closeUpgradeModal() {
   if (!upgradeEls) return;
   const { overlay, panel } = upgradeEls;
 
-  // Stop any running poll
-  if (pollTimer) {
-    clearInterval(pollTimer);
-    pollTimer = null;
-  }
+  if (planPollTimer) { clearInterval(planPollTimer); planPollTimer = null; }
 
   overlay.classList.add("opacity-0");
   panel.classList.add("translate-y-full", "sm:scale-95");
@@ -397,11 +416,8 @@ function closeUpgradeModal() {
 }
 
 function isModalCancellable() {
-  // Don't let the user close while a poll is in flight awaiting a terminal result
-  return !pollTimer;
+  return !planPollTimer;
 }
-
-// -- Modal state renderers --------------------------------------------------
 
 function setModalState(stateName, payload = {}) {
   if (!upgradeEls) return;
@@ -415,7 +431,6 @@ function setModalState(stateName, payload = {}) {
   };
   upgradeEls.body.innerHTML = renderers[stateName](payload);
   upgradeEls.body.classList.remove("vault-anim-fade-up");
-  // restart animation
   void upgradeEls.body.offsetWidth;
   upgradeEls.body.classList.add("vault-anim-fade-up");
   bindModalStateEvents(stateName);
@@ -455,8 +470,8 @@ function renderConfirmState() {
   const limits = plan.limits || {};
   const summaryRows = [
     ["Payout schedule", limits.payout_schedule],
-    ["Commission",      limits.commission_label],
-    ["Instant min.",    limits.instant_min ? `KSh ${Number(limits.instant_min).toLocaleString("en-KE")}` : null],
+    ["Withdrawal fee",  "5%"],
+    ["Min. withdrawal", limits.instant_min ? `KSh ${Number(limits.instant_min).toLocaleString("en-KE")}` : null],
     ["Safaricom fee",   limits.safaricom_share_label],
   ].filter(([, v]) => v);
 
@@ -642,7 +657,6 @@ function renderTimeoutState() {
 function bindModalStateEvents(stateName) {
   if (!upgradeEls) return;
 
-  // Close buttons (present in confirm / failed / timeout states)
   upgradeEls.body.querySelectorAll(".plan-upgrade-close-btn").forEach((b) => {
     b.addEventListener("click", () => {
       if (isModalCancellable()) closeUpgradeModal();
@@ -650,14 +664,11 @@ function bindModalStateEvents(stateName) {
   });
 
   if (stateName === "confirm") {
-    const btn = document.getElementById("plan-upgrade-confirm-btn");
-    btn?.addEventListener("click", handleUpgradeConfirm);
+    document.getElementById("plan-upgrade-confirm-btn")?.addEventListener("click", handleUpgradeConfirm);
   }
 
   if (stateName === "awaiting_pin") {
     document.getElementById("plan-upgrade-cancel-btn")?.addEventListener("click", () => {
-      // User chose to close — cancel polling. Payment may still complete server-side,
-      // so we refresh the plan on close to catch a late success.
       closeUpgradeModal();
       setTimeout(refreshCurrentPlanAndRender, 800);
     });
@@ -668,9 +679,7 @@ function bindModalStateEvents(stateName) {
   }
 
   if (stateName === "failed") {
-    document.getElementById("plan-upgrade-retry-btn")?.addEventListener("click", () => {
-      setModalState("confirm");
-    });
+    document.getElementById("plan-upgrade-retry-btn")?.addEventListener("click", () => setModalState("confirm"));
   }
 
   if (stateName === "timeout") {
@@ -680,17 +689,13 @@ function bindModalStateEvents(stateName) {
       try {
         const status = await fetchPaymentStatus(ref);
         handlePaymentStatusUpdate(status);
-      } catch (err) {
-        console.error(err);
-      }
+      } catch (err) { console.error(err); }
     });
   }
 }
 
-// -- Upgrade flow: POST → awaiting_pin → poll ------------------------------
-
 async function handleUpgradeConfirm() {
-  const { plan, changeType } = currentUpgradeCtx;
+  const { plan } = currentUpgradeCtx;
   const isFree = Number(plan.price) === 0;
 
   let phone = null;
@@ -698,7 +703,11 @@ async function handleUpgradeConfirm() {
     const input = document.getElementById("plan-upgrade-phone");
     phone = (input?.value || "").trim();
     if (!phone) {
-      window.showNotif?.("Enter a valid M-Pesa phone number.", "error");
+      window.showNotif?.({
+        type: "error",
+        title: "Invalid number",
+        message: "Enter a valid M-Pesa phone number.",
+      });
       return;
     }
     currentUpgradeCtx.phone = phone;
@@ -710,34 +719,28 @@ async function handleUpgradeConfirm() {
     const idToken = await auth.currentUser.getIdToken();
     const res = await fetch(`${PLANS_API_BASE}/upgrade/`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
       body: JSON.stringify({ plan_id: plan.id, phone: phone || "" }),
     });
 
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      // 409 duplicate, 400 bad input, 404 plan gone, 5xx Daraja down
       setModalState("failed", { reason: data.message || `Request failed (${res.status})` });
       return;
     }
 
-    // ---- Free plan path: no PIN, immediate success ----------------------
     if (data.payment_required === false) {
       currentUpgradeCtx.transactionReference = null;
       setModalState("success", { plan: data.plan || plan });
       await refreshCurrentPlanAndRender();
-      setTimeout(() => { if (!pollTimer) closeUpgradeModal(); }, 2200);
+      setTimeout(() => { if (!planPollTimer) closeUpgradeModal(); }, 2200);
       return;
     }
 
-    // ---- Paid plan path: awaiting PIN + poll ----------------------------
     currentUpgradeCtx.transactionReference = data.transaction_reference;
     setModalState("awaiting_pin");
-    startPolling(data.transaction_reference);
+    startPlanPolling(data.transaction_reference);
 
   } catch (err) {
     console.error("Upgrade request failed:", err);
@@ -745,14 +748,14 @@ async function handleUpgradeConfirm() {
   }
 }
 
-function startPolling(transactionReference) {
-  if (pollTimer) clearInterval(pollTimer);
-  pollStartedAt = Date.now();
+function startPlanPolling(transactionReference) {
+  if (planPollTimer) clearInterval(planPollTimer);
+  planPollStartedAt = Date.now();
 
   const tick = async () => {
-    if (Date.now() - pollStartedAt > POLL_TIMEOUT_MS) {
-      clearInterval(pollTimer);
-      pollTimer = null;
+    if (Date.now() - planPollStartedAt > POLL_TIMEOUT_MS) {
+      clearInterval(planPollTimer);
+      planPollTimer = null;
       setModalState("timeout");
       return;
     }
@@ -761,46 +764,34 @@ function startPolling(transactionReference) {
       handlePaymentStatusUpdate(status);
     } catch (err) {
       console.error("Poll failed:", err);
-      // Silent — transient network errors shouldn't nuke the modal.
     }
   };
 
-  // First check after a short grace period, then on interval.
   setTimeout(tick, POLL_INTERVAL_MS);
-  pollTimer = setInterval(tick, POLL_INTERVAL_MS);
+  planPollTimer = setInterval(tick, POLL_INTERVAL_MS);
 }
 
 async function handlePaymentStatusUpdate(status) {
   if (!status) return;
 
   if (status.status === "Completed") {
-    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-    setModalState("success", {
-      plan: status.plan,
-      receipt: status.mpesa_receipt_number,
-    });
+    if (planPollTimer) { clearInterval(planPollTimer); planPollTimer = null; }
+    setModalState("success", { plan: status.plan, receipt: status.mpesa_receipt_number });
     await refreshCurrentPlanAndRender();
-    setTimeout(() => { if (!pollTimer) closeUpgradeModal(); }, 2400);
+    setTimeout(() => { if (!planPollTimer) closeUpgradeModal(); }, 2400);
     return;
   }
 
   if (status.status === "Failed") {
-    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-    setModalState("failed", {
-      reason: status.result_description || "Payment was not completed.",
-    });
+    if (planPollTimer) { clearInterval(planPollTimer); planPollTimer = null; }
+    setModalState("failed", { reason: status.result_description || "Payment was not completed." });
     return;
   }
-
-  // status === "Initialized" → keep polling, stay on awaiting_pin
 }
 
 async function refreshCurrentPlanAndRender() {
   try {
-    const [currentPlan, plansList] = await Promise.all([
-      fetchCurrentPlan(),
-      fetchAvailablePlans(),
-    ]);
+    const [currentPlan, plansList] = await Promise.all([fetchCurrentPlan(), fetchAvailablePlans()]);
     state.plan = currentPlan;
     state.availablePlans = plansList;
     renderPlan();
@@ -810,9 +801,7 @@ async function refreshCurrentPlanAndRender() {
 }
 
 function resumePendingPayment(payment) {
-  // payment from /history/ — has transaction_reference, plan, change_type, phone_number
-  const targetPlan = state.availablePlans.find((p) => p.id === payment.plan?.id)
-    || payment.plan;
+  const targetPlan = state.availablePlans.find((p) => p.id === payment.plan?.id) || payment.plan;
 
   currentUpgradeCtx = {
     plan: targetPlan,
@@ -824,11 +813,11 @@ function resumePendingPayment(payment) {
 
   openUpgradeModal();
   setModalState("awaiting_pin");
-  startPolling(payment.transaction_reference);
+  startPlanPolling(payment.transaction_reference);
 }
 
 // -------------------------------------------------------------------------
-// Render: payout destination (unchanged)
+// Render: payout destination
 // -------------------------------------------------------------------------
 function renderPayoutDestination() {
   const typeEl = document.getElementById("vault-payout-type");
@@ -840,30 +829,30 @@ function renderPayoutDestination() {
     return;
   }
 
-  const label = state.payout.type === "till" ? "Till" : "Paybill";
-  typeEl.textContent = label;
+  typeEl.textContent = state.payout.label || "M-Pesa";
   typeEl.classList.remove("text-white/50");
-  numberEl.textContent = ` • ${state.payout.number}`;
+  numberEl.textContent = ` • ${formatPhoneDisplay(state.payout.phone || "")}`;
 }
 
 // -------------------------------------------------------------------------
-// Render: withdrawals list (live, unchanged)
+// Withdrawals list
 // -------------------------------------------------------------------------
-function subscribeToWithdrawals() {
-  if (withdrawalsUnsub) withdrawalsUnsub();
+async function loadWithdrawalsList() {
+  const listEl = document.getElementById("vault-withdrawals-list");
+  const emptyEl = document.getElementById("vault-withdrawals-empty");
+  if (!listEl || !emptyEl) return;
 
-  const q = query(
-    collection(db, "withdrawal"),
-    where("vendor_id", "==", vendorId),
-    orderBy("createdAt", "desc"),
-    limit(20)
-  );
+  try {
+    const idToken = await auth.currentUser.getIdToken();
+    const res = await fetch(`${API_BASE}/withdrawals`, {
+      headers: { Authorization: `Bearer ${idToken}` },
+    });
+    if (!res.ok) throw new Error(`Withdrawals fetch failed: ${res.status}`);
 
-  withdrawalsUnsub = onSnapshot(q, (snap) => {
-    const listEl = document.getElementById("vault-withdrawals-list");
-    const emptyEl = document.getElementById("vault-withdrawals-empty");
+    const data = await res.json();
+    const withdrawals = data.withdrawals || [];
 
-    if (snap.empty) {
+    if (withdrawals.length === 0) {
       listEl.innerHTML = "";
       emptyEl.classList.remove("hidden");
       return;
@@ -871,40 +860,67 @@ function subscribeToWithdrawals() {
     emptyEl.classList.add("hidden");
 
     const frag = document.createDocumentFragment();
-    snap.forEach((d) => frag.appendChild(buildWithdrawalRow(d.id, d.data())));
+    withdrawals.forEach((w) => frag.appendChild(buildWithdrawalRow(w)));
     listEl.innerHTML = "";
     listEl.appendChild(frag);
-  });
+  } catch (err) {
+    console.warn("Withdrawals load failed:", err);
+  }
 }
 
-function buildWithdrawalRow(id, w) {
+function buildWithdrawalRow(w) {
   const row = document.createElement("div");
-  row.className =
-    "flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5";
+  row.className = "flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5";
 
-  const statusColors = {
-    completed: "text-emerald-400 bg-emerald-500/10",
-    pending: "text-amber-400 bg-amber-500/10",
-    failed: "text-red-400 bg-red-500/10",
+  const statusStyles = {
+    succeeded:  { cls: "text-emerald-400 bg-emerald-500/10", label: "Completed" },
+    processing: { cls: "text-amber-400 bg-amber-500/10",     label: "Processing" },
+    pending:    { cls: "text-amber-400 bg-amber-500/10",     label: "Pending" },
+    failed:     { cls: "text-red-400 bg-red-500/10",         label: "Failed" },
   };
-  const statusClass = statusColors[w.status] || "text-white/40 bg-white/5";
+  const s = statusStyles[w.status] || { cls: "text-white/40 bg-white/5", label: w.status || "—" };
+
+  const dateStr = w.requested_at ? formatDjangoDate(w.requested_at) : "";
+  const amountStr = `KSh ${Number(w.amount || 0).toLocaleString()}`;
 
   row.innerHTML = `
-    <div>
-      <p class="text-sm font-semibold text-white">${formatKsh(w.amount)}</p>
-      <p class="text-xs text-white/30 mt-0.5">${formatDate(w.createdAt)}</p>
+    <div class="min-w-0">
+      <p class="text-sm font-semibold text-white">${escapeHtml(amountStr)}</p>
+      <p class="text-xs text-white/30 mt-0.5">${escapeHtml(dateStr)}</p>
+      ${w.mpesa_receipt_number ? `<p class="text-[10px] text-white/30 mt-0.5 font-mono truncate">${escapeHtml(w.mpesa_receipt_number)}</p>` : ""}
     </div>
-    <span class="text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full ${statusClass}">
-      ${w.status || "pending"}
+    <span class="text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full whitespace-nowrap ${s.cls}">
+      ${escapeHtml(s.label)}
     </span>
   `;
   return row;
 }
 
+function formatDjangoDate(iso) {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" });
+  } catch { return ""; }
+}
+
 // -------------------------------------------------------------------------
-// Withdraw modal (unchanged behaviour, but reads state.plan.slug now)
+// Withdraw — input modal
 // -------------------------------------------------------------------------
 function openWithdrawModal() {
+  if (!state.payout) {
+    window.showDialog?.({
+      type: "info", emoji: "📲", tag: "Payout Required",
+      title: "Set your payout number first",
+      message: "Before withdrawing, tell us which M-Pesa phone number should receive your money.",
+      actions: [
+        { label: "Set payout number", style: "primary", onClick: openPayoutModal },
+        { label: "Cancel", style: "secondary", onClick: () => {} },
+      ],
+    });
+    return;
+  }
+
   document.getElementById("withdraw-amount").value = "";
   document.getElementById("withdraw-fee-preview").classList.add("hidden");
   document.getElementById("withdraw-below-min-notice").classList.add("hidden");
@@ -916,98 +932,420 @@ function closeWithdrawModal() {
   closeModal("withdraw-modal-overlay", "withdraw-modal");
 }
 
+// -------------------------------------------------------------------------
+// Withdraw — amount input handler
+//
+// The fee preview ALWAYS shows as they type (when the amount is > 0 and
+// within balance), so the vendor can see what they'd receive at any point.
+// The below-minimum notice stacks alongside when the amount is under their
+// plan's minimum — it doesn't replace the fee preview.
+// -------------------------------------------------------------------------
 function onWithdrawAmountInput(e) {
   const amount = parseFloat(e.target.value) || 0;
   const confirmBtn = document.getElementById("withdraw-confirm-btn");
   const previewEl = document.getElementById("withdraw-fee-preview");
   const belowMinEl = document.getElementById("withdraw-below-min-notice");
 
+  // Reset visual state on every keystroke
+  previewEl.classList.add("hidden");
+  belowMinEl.classList.add("hidden");
+  confirmBtn.disabled = true;
+
   if (amount <= 0) {
-    previewEl.classList.add("hidden");
-    belowMinEl.classList.add("hidden");
-    confirmBtn.disabled = true;
+    wasOverBalance = false;
     return;
   }
+
+  // Over balance — notify once on the crossing, then stay quiet
   if (amount > state.balance) {
-    confirmBtn.disabled = true;
-    window.showNotif?.("Amount exceeds available balance.", "error");
+    if (!wasOverBalance) {
+      window.showNotif?.({
+        type: "error",
+        title: "Amount too high",
+        message: `You only have ${formatKsh(state.balance)} available.`,
+      });
+      wasOverBalance = true;
+    }
     return;
   }
 
-  const gmarketfyFee = amount * GMARKETFY_FEE_RATE;
-  const estSafaricomFee = estimateSafaricomFeePreview(amount, state.plan?.slug);
-  const receives = amount - gmarketfyFee - estSafaricomFee;
-
-  document.getElementById("fee-gmarketfy").textContent = formatKsh(gmarketfyFee);
-  document.getElementById("fee-safaricom").textContent = formatKsh(estSafaricomFee);
-  document.getElementById("fee-total-receive").textContent = formatKsh(receives);
-  previewEl.classList.remove("hidden");
+  // Dropped back under balance — rearm the notif for next time
+  wasOverBalance = false;
 
   const minForPlan = Number(state.plan?.limits?.instant_min ?? 0);
   const belowMin = amount < minForPlan;
-  belowMinEl.classList.toggle("hidden", !belowMin);
 
-  confirmBtn.disabled = false;
-}
+  // Fee preview — always shown for a valid positive amount
+  const charges = computeWithdrawalCharges(amount);
 
-function estimateSafaricomFeePreview(amount, planSlug) {
-  const base = amount > 20000 ? 108 : amount > 1000 ? 55 : 13;
-  const shareByPlan = { free: 1.1, medium: 0.7, premium: 0.4, ultimate: 0 };
-  if (planSlug === "ultimate") return 15;
-  return Math.round(base * (shareByPlan[planSlug] ?? 1));
+  document.getElementById("fee-gmarketfy").textContent = formatKsh(charges.gmarketfy_fee);
+  document.getElementById("fee-safaricom").textContent = formatKsh(charges.safaricom_fee_vendor_pays);
+  document.getElementById("fee-total-receive").textContent = formatKsh(charges.net_to_vendor);
+  previewEl.classList.remove("hidden");
+
+  // Below-minimum notice — stacks on top of the preview
+  if (belowMin) {
+    const minText = document.getElementById("withdraw-below-min-text");
+    if (minText) {
+      const planName = state.plan?.name || "current";
+      minText.textContent = `Your ${planName} plan requires a minimum withdrawal of KSh ${minForPlan.toLocaleString("en-KE")}. Upgrade to withdraw smaller amounts.`;
+    }
+    belowMinEl.classList.remove("hidden");
+  }
+
+  confirmBtn.disabled = belowMin;
 }
 
 async function handleWithdrawConfirm() {
   const amount = parseFloat(document.getElementById("withdraw-amount").value);
   if (!amount || amount <= 0) return;
 
-  const btn = document.getElementById("withdraw-confirm-btn");
-  btn.disabled = true;
-  btn.textContent = "Processing...";
+  closeWithdrawModal();
+  openWdProgressModal();
+  setWdProgressState("sending", { amount });
 
   try {
     const idToken = await auth.currentUser.getIdToken();
     const res = await fetch(`${API_BASE}/withdraw`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
       body: JSON.stringify({ amount }),
     });
+
+    const data = await res.json().catch(() => ({}));
+
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || `Withdrawal failed: ${res.status}`);
+      setWdProgressState("failed", {
+        reason: data.message || `Request failed (${res.status})`,
+        amount,
+      });
+      return;
     }
 
-    state.balance -= amount;
-    renderBalance();
-    window.showNotif?.("Withdrawal initiated.", "success");
-    closeWithdrawModal();
+    currentWithdrawalCtx = {
+      id: data.withdrawal_id,
+      amount: Number(data.amount),
+      fee: Number(data.fee),
+      net: Number(data.net_amount),
+    };
+
+    setWdProgressState("processing", { amount: currentWithdrawalCtx.amount, net: currentWithdrawalCtx.net });
+    startWdPolling(data.withdrawal_id);
+
   } catch (err) {
-    console.error(err);
-    window.showNotif?.(err.message || "Withdrawal failed. Try again.", "error");
-  } finally {
-    btn.textContent = "Confirm Withdrawal";
-    btn.disabled = false;
+    console.error("Withdraw failed:", err);
+    setWdProgressState("failed", { reason: "Network error. Please try again.", amount });
   }
 }
 
 // -------------------------------------------------------------------------
-// Payout destination modal (unchanged)
+// Withdraw progress modal
+// -------------------------------------------------------------------------
+function ensureWdProgressModal() {
+  if (wdProgressEls) return wdProgressEls;
+
+  const overlay = document.createElement("div");
+  overlay.id = "wd-progress-overlay";
+  overlay.className =
+    "fixed inset-0 z-[80] bg-black/60 backdrop-blur-md hidden opacity-0 transition-opacity duration-300 flex items-end sm:items-center justify-center";
+
+  const panel = document.createElement("div");
+  panel.id = "wd-progress-panel";
+  panel.className =
+    "w-full sm:max-w-md bg-[#0f1115] border border-white/5 sm:rounded-[2rem] rounded-t-3xl p-6 md:p-8 " +
+    "translate-y-full sm:translate-y-0 sm:scale-95 transition-all duration-300 " +
+    "max-h-[88vh] overflow-y-auto shadow-2xl";
+
+  const body = document.createElement("div");
+  body.id = "wd-progress-body";
+
+  panel.appendChild(body);
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay && !wdPollTimer) closeWdProgressModal();
+  });
+
+  wdProgressEls = { overlay, panel, body };
+  return wdProgressEls;
+}
+
+function openWdProgressModal() {
+  const { overlay, panel } = ensureWdProgressModal();
+  overlay.classList.remove("hidden");
+  requestAnimationFrame(() => {
+    overlay.classList.remove("opacity-0");
+    panel.classList.remove("translate-y-full", "sm:scale-95");
+  });
+}
+
+function closeWdProgressModal() {
+  if (!wdProgressEls) return;
+  if (wdPollTimer) { clearInterval(wdPollTimer); wdPollTimer = null; }
+  const { overlay, panel } = wdProgressEls;
+  overlay.classList.add("opacity-0");
+  panel.classList.add("translate-y-full", "sm:scale-95");
+  setTimeout(() => {
+    overlay.classList.add("hidden");
+    wdProgressEls.body.innerHTML = "";
+  }, 300);
+  currentWithdrawalCtx = null;
+}
+
+function setWdProgressState(stateName, payload = {}) {
+  if (!wdProgressEls) return;
+  const renderers = {
+    sending: renderWdSending,
+    processing: renderWdProcessing,
+    success: renderWdSuccess,
+    failed: renderWdFailed,
+    timeout: renderWdTimeout,
+  };
+  wdProgressEls.body.innerHTML = renderers[stateName](payload);
+  wdProgressEls.body.classList.remove("vault-anim-fade-up");
+  void wdProgressEls.body.offsetWidth;
+  wdProgressEls.body.classList.add("vault-anim-fade-up");
+  bindWdProgressEvents(stateName);
+}
+
+function renderWdSending(payload) {
+  const amount = payload?.amount || currentWithdrawalCtx?.amount || 0;
+  return `
+    <div class="flex items-start justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-extrabold text-white tracking-tight">Withdrawing</h2>
+        <p class="text-slate-500 text-xs mt-1 font-medium">${formatKsh(amount)}</p>
+      </div>
+    </div>
+    <div class="flex flex-col items-center py-10">
+      <div class="relative w-24 h-24 mb-6">
+        <span class="absolute inset-0 rounded-full bg-indigo-500/20 vault-ring-pulse"></span>
+        <span class="absolute inset-0 rounded-full bg-indigo-500/10 vault-ring-pulse" style="animation-delay:0.5s"></span>
+        <div class="absolute inset-0 flex items-center justify-center">
+          <div class="w-14 h-14 rounded-full bg-indigo-500/30 flex items-center justify-center text-2xl">💸</div>
+        </div>
+      </div>
+      <p class="text-sm text-white/70 font-semibold">Sending request to M-Pesa…</p>
+      <p class="text-xs text-white/35 mt-1">This usually takes 1–3 seconds.</p>
+      <div class="flex items-center gap-1.5 mt-5">
+        <span class="vault-dot w-2 h-2 rounded-full bg-indigo-400"></span>
+        <span class="vault-dot w-2 h-2 rounded-full bg-indigo-400"></span>
+        <span class="vault-dot w-2 h-2 rounded-full bg-indigo-400"></span>
+      </div>
+    </div>
+  `;
+}
+
+function renderWdProcessing(payload) {
+  const amount = payload?.amount || currentWithdrawalCtx?.amount || 0;
+  const net = payload?.net || currentWithdrawalCtx?.net || 0;
+  const phone = state.payout?.phone || "";
+  return `
+    <div class="flex items-start justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-extrabold text-white tracking-tight">Processing payout</h2>
+        <p class="text-slate-500 text-xs mt-1 font-medium">${formatKsh(amount)} → ${formatKsh(net)}</p>
+      </div>
+    </div>
+    <div class="flex flex-col items-center py-8">
+      <div class="relative w-28 h-28 mb-6">
+        <span class="absolute inset-0 rounded-full bg-amber-500/20 vault-ring-pulse"></span>
+        <span class="absolute inset-0 rounded-full bg-amber-500/10 vault-ring-pulse" style="animation-delay:0.6s"></span>
+        <div class="absolute inset-0 flex items-center justify-center">
+          <div class="w-16 h-16 rounded-full bg-amber-500/25 flex items-center justify-center text-3xl">
+            <span class="vault-coin">💰</span>
+          </div>
+        </div>
+      </div>
+      <p class="text-sm text-white font-semibold text-center">Sending to</p>
+      <p class="text-lg font-black text-white mt-1 tracking-wide">${escapeHtml(formatPhoneDisplay(phone))}</p>
+      <p class="text-xs text-white/40 mt-3 text-center max-w-xs">
+        M-Pesa is processing the transfer. This window updates automatically.
+      </p>
+      <div class="flex items-center gap-1.5 mt-6">
+        <span class="vault-dot w-2 h-2 rounded-full bg-amber-400"></span>
+        <span class="vault-dot w-2 h-2 rounded-full bg-amber-400"></span>
+        <span class="vault-dot w-2 h-2 rounded-full bg-amber-400"></span>
+      </div>
+    </div>
+    <button class="wd-progress-close-btn w-full h-11 rounded-xl bg-white/5 text-white/50 text-xs font-semibold hover:bg-white/10 transition mt-2">
+      Close (keeps processing in background)
+    </button>
+  `;
+}
+
+function renderWdSuccess(payload) {
+  const amount = payload?.amount || currentWithdrawalCtx?.amount || 0;
+  const net = payload?.net || currentWithdrawalCtx?.net || 0;
+  const receipt = payload?.receipt;
+  return `
+    <div class="flex items-start justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-extrabold text-white tracking-tight">Sent 🎉</h2>
+        <p class="text-slate-500 text-xs mt-1 font-medium">${formatKsh(net)} on the way</p>
+      </div>
+    </div>
+    <div class="flex flex-col items-center py-8">
+      <div class="relative w-24 h-24 mb-5">
+        <span class="absolute inset-0 rounded-full bg-emerald-500/20 vault-ring-pulse"></span>
+        <div class="absolute inset-0 flex items-center justify-center">
+          <div class="w-16 h-16 rounded-full bg-emerald-500/25 flex items-center justify-center">
+            <svg class="w-9 h-9 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <path class="vault-check-path" d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <p class="text-sm text-white font-semibold">${formatKsh(net)} sent to M-Pesa.</p>
+      <p class="text-xs text-white/40 mt-2">Withdrawal of ${formatKsh(amount)} completed.</p>
+      ${receipt ? `<p class="text-xs text-white/40 mt-2">M-Pesa receipt: <span class="text-white/70 font-mono">${escapeHtml(receipt)}</span></p>` : ""}
+    </div>
+    <button class="wd-progress-close-btn w-full h-12 bg-white hover:bg-slate-100 text-black font-extrabold rounded-xl text-sm transition-all shadow-xl active:scale-[0.98]">
+      Done
+    </button>
+  `;
+}
+
+function renderWdFailed(payload) {
+  const reason = payload?.reason || "Withdrawal was not completed.";
+  return `
+    <div class="flex items-start justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-extrabold text-white tracking-tight">Withdrawal failed</h2>
+        <p class="text-slate-500 text-xs mt-1 font-medium">${escapeHtml(reason)}</p>
+      </div>
+    </div>
+    <div class="flex flex-col items-center py-8">
+      <div class="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mb-5">
+        <svg class="w-8 h-8 text-red-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>
+        </svg>
+      </div>
+      <p class="text-sm text-white/70 text-center max-w-xs">
+        Your balance has been restored. You can try again whenever you're ready.
+      </p>
+    </div>
+    <button class="wd-progress-close-btn w-full h-12 bg-white hover:bg-slate-100 text-black font-extrabold rounded-xl text-sm transition-all active:scale-[0.98]">
+      Close
+    </button>
+  `;
+}
+
+function renderWdTimeout() {
+  return `
+    <div class="flex items-start justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-extrabold text-white tracking-tight">Taking longer than expected</h2>
+        <p class="text-slate-500 text-xs mt-1 font-medium">We haven't heard back from M-Pesa yet</p>
+      </div>
+    </div>
+    <div class="flex flex-col items-center py-8">
+      <div class="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center mb-5 text-2xl">⏳</div>
+      <p class="text-sm text-white/70 text-center max-w-xs">
+        Your withdrawal is still processing. We'll update your balance the moment it completes.
+      </p>
+    </div>
+    <button class="wd-progress-close-btn w-full h-12 bg-white hover:bg-slate-100 text-black font-extrabold rounded-xl text-sm transition-all active:scale-[0.98]">
+      Close
+    </button>
+  `;
+}
+
+function bindWdProgressEvents(stateName) {
+  if (!wdProgressEls) return;
+
+  wdProgressEls.body.querySelectorAll(".wd-progress-close-btn").forEach((b) => {
+    b.addEventListener("click", () => {
+      closeWdProgressModal();
+      setTimeout(refreshVaultSummaryAndList, 400);
+    });
+  });
+}
+
+function startWdPolling(withdrawalId) {
+  if (wdPollTimer) clearInterval(wdPollTimer);
+  const startedAt = Date.now();
+
+  const tick = async () => {
+    if (Date.now() - startedAt > POLL_TIMEOUT_MS) {
+      clearInterval(wdPollTimer);
+      wdPollTimer = null;
+      setWdProgressState("timeout");
+      return;
+    }
+    try {
+      const status = await fetchWithdrawalStatus(withdrawalId);
+      handleWithdrawalStatusUpdate(status);
+    } catch (err) {
+      console.warn("Withdrawal poll failed:", err);
+    }
+  };
+
+  setTimeout(tick, POLL_INTERVAL_MS);
+  wdPollTimer = setInterval(tick, POLL_INTERVAL_MS);
+}
+
+async function fetchWithdrawalStatus(withdrawalId) {
+  const idToken = await auth.currentUser.getIdToken();
+  const res = await fetch(`${API_BASE}/withdrawals/${withdrawalId}`, {
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+  if (!res.ok) throw new Error(`Status failed: ${res.status}`);
+  return res.json();
+}
+
+function handleWithdrawalStatusUpdate(status) {
+  if (!status) return;
+
+  if (status.status === "succeeded") {
+    if (wdPollTimer) { clearInterval(wdPollTimer); wdPollTimer = null; }
+    setWdProgressState("success", {
+      amount: Number(status.amount),
+      net: Number(status.net_amount),
+      receipt: status.mpesa_receipt_number,
+    });
+    refreshVaultSummaryAndList();
+    return;
+  }
+
+  if (status.status === "failed") {
+    if (wdPollTimer) { clearInterval(wdPollTimer); wdPollTimer = null; }
+    setWdProgressState("failed", { reason: status.result_description || "Withdrawal was not completed." });
+    refreshVaultSummaryAndList();
+    return;
+  }
+}
+
+async function refreshVaultSummaryAndList() {
+  try {
+    invalidateCache?.(`vault-summary:${vendorId}`);
+    const summary = await fetchVaultSummary();
+    state.balance = summary.balance ?? 0;
+    state.pendingBalance = summary.pendingBalance ?? 0;
+    renderBalance();
+  } catch (e) {
+    console.warn("balance refresh failed:", e);
+  }
+  loadWithdrawalsList();
+}
+
+// -------------------------------------------------------------------------
+// Payout destination modal — B2C phone + label only
 // -------------------------------------------------------------------------
 function openPayoutModal() {
   pendingPayoutSelection = null;
   document.getElementById("payout-step-details").classList.remove("hidden");
   document.getElementById("payout-step-verify").classList.add("hidden");
-  document.getElementById("payout-type").value = "";
-  document.getElementById("payout-number-input").value = "";
-  document.getElementById("payout-account-input").value = "";
-  document.getElementById("payout-account-field").classList.add("hidden");
+
+  const phoneInput = document.getElementById("payout-phone-input");
+  const labelInput = document.getElementById("payout-label-input");
+
+  phoneInput.value = state.payout?.phone || state.vendorPhone || "";
+  labelInput.value = state.payout?.label || "";
+
   document.getElementById("payout-continue-btn").disabled = true;
-  document
-    .querySelectorAll(".payout-type-btn")
-    .forEach((b) => b.classList.remove("border-indigo-500/50", "text-white/80"));
+  validatePayoutDetailsStep();
   openModal("payout-modal-overlay", "payout-modal");
 }
 
@@ -1015,31 +1353,18 @@ function closePayoutModal() {
   closeModal("payout-modal-overlay", "payout-modal");
 }
 
-function onPayoutTypeSelect(e) {
-  const btn = e.currentTarget;
-  const type = btn.dataset.type;
-  document.getElementById("payout-type").value = type;
-
-  document
-    .querySelectorAll(".payout-type-btn")
-    .forEach((b) => b.classList.remove("border-indigo-500/50", "text-white/80"));
-  btn.classList.add("border-indigo-500/50", "text-white/80");
-
-  document.getElementById("payout-number-label").textContent =
-    type === "till" ? "Till Number" : "Paybill Number";
-  document
-    .getElementById("payout-account-field")
-    .classList.toggle("hidden", type !== "paybill");
-
-  validatePayoutDetailsStep();
+function normalizePhone(phone) {
+  let p = String(phone || "").replace(/\s/g, "").replace(/-/g, "");
+  if (p.startsWith("+254")) p = "254" + p.slice(4);
+  else if (p.startsWith("07") || p.startsWith("01")) p = "254" + p.slice(1);
+  return p;
 }
 
 function validatePayoutDetailsStep() {
-  const type = document.getElementById("payout-type").value;
-  const number = document.getElementById("payout-number-input").value.trim();
-  const account = document.getElementById("payout-account-input").value.trim();
+  const phone = (document.getElementById("payout-phone-input")?.value || "").trim();
+  const normalized = normalizePhone(phone);
+  const valid = /^254\d{9}$/.test(normalized);
 
-  const valid = type && number && (type !== "paybill" || account);
   const btn = document.getElementById("payout-continue-btn");
   btn.disabled = !valid;
   btn.classList.toggle("bg-indigo-500", valid);
@@ -1049,18 +1374,19 @@ function validatePayoutDetailsStep() {
 }
 
 function onPayoutContinue() {
+  const phone = document.getElementById("payout-phone-input").value.trim();
+  const label = document.getElementById("payout-label-input").value.trim();
+
   pendingPayoutSelection = {
-    type: document.getElementById("payout-type").value,
-    number: document.getElementById("payout-number-input").value.trim(),
-    accountNumber: document.getElementById("payout-account-input").value.trim() || null,
+    phone: normalizePhone(phone),
+    label: label || null,
   };
+
   document.getElementById("payout-step-details").classList.add("hidden");
   document.getElementById("payout-step-verify").classList.remove("hidden");
   document.getElementById("payout-verify-error").classList.add("hidden");
   document.getElementById("payout-verify-password").value = "";
-
   validatePayoutVerifyStep();
-
 }
 
 function onPayoutBack() {
@@ -1080,18 +1406,13 @@ async function handlePayoutSave() {
   errorEl.classList.add("hidden");
 
   try {
-    // Re-verify identity before touching where money goes.
     const credential = EmailAuthProvider.credential(auth.currentUser.email, password);
     await reauthenticateWithCredential(auth.currentUser, credential);
 
-    // Django is the source of truth — no Firestore write here.
     const idToken = await auth.currentUser.getIdToken();
     const res = await fetch(`${API_BASE}/payout-destination`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
       body: JSON.stringify(pendingPayoutSelection),
     });
 
@@ -1103,12 +1424,10 @@ async function handlePayoutSave() {
       return;
     }
 
-    // Server-normalized values are the truth.
     state.payout = data.destination || pendingPayoutSelection;
     renderPayoutDestination();
-    window.showNotif?.({ type: "success", title: "Saved", message: "Payout destination updated." });
+    window.showNotif?.({ type: "success", title: "Saved", message: "Payout number updated." });
     closePayoutModal();
-
   } catch (err) {
     console.error(err);
     errorEl.classList.remove("hidden");
@@ -1122,11 +1441,17 @@ async function handlePayoutSave() {
   }
 }
 
+function validatePayoutVerifyStep() {
+  const password = document.getElementById("payout-verify-password").value;
+  const btn = document.getElementById("payout-save-btn");
+  btn.disabled = !password;
+  btn.classList.toggle("opacity-40", !password);
+  btn.classList.toggle("cursor-not-allowed", !password);
+}
 
 // -------------------------------------------------------------------------
-// Payout destination history — button + modal (built dynamically)
+// Payout history modal
 // -------------------------------------------------------------------------
-
 function injectPayoutHistoryButton() {
   if (document.getElementById("vault-payout-history-btn")) return;
 
@@ -1140,7 +1465,6 @@ function injectPayoutHistoryButton() {
   btn.textContent = "History";
   btn.addEventListener("click", openPayoutHistoryModal);
 
-  // Insert right after the "Change" button
   changeBtn.parentElement.insertBefore(btn, changeBtn.nextSibling);
 }
 
@@ -1163,7 +1487,7 @@ function ensurePayoutHistoryModal() {
     <div class="flex items-start justify-between mb-6">
       <div>
         <h2 class="text-xl font-extrabold text-white tracking-tight">Payout History</h2>
-        <p class="text-slate-500 text-xs mt-1 font-medium">Every change to your payout destination.</p>
+        <p class="text-slate-500 text-xs mt-1 font-medium">Every change to your payout number.</p>
       </div>
       <button class="payout-history-close-btn w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition text-white/60 hover:text-white shrink-0">
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1209,7 +1533,6 @@ function closePayoutHistoryModal() {
   const overlay = document.getElementById("payout-history-overlay");
   const panel = document.getElementById("payout-history-panel");
   if (!overlay || !panel) return;
-
   overlay.classList.add("opacity-0");
   panel.classList.add("translate-y-full", "sm:scale-95");
   setTimeout(() => overlay.classList.add("hidden"), 300);
@@ -1238,10 +1561,7 @@ async function fetchPayoutHistoryAndRender() {
       return;
     }
 
-    body.innerHTML = `
-      <div class="space-y-3">
-        ${changes.map(renderPayoutHistoryRow).join("")}
-      </div>`;
+    body.innerHTML = `<div class="space-y-3">${changes.map(renderPayoutHistoryRow).join("")}</div>`;
   } catch (err) {
     console.error("Payout history fetch failed:", err);
     body.innerHTML = `
@@ -1256,9 +1576,9 @@ function renderPayoutHistoryRow(change) {
 
   const fmtDest = (d) => {
     if (!d) return "—";
-    const label = d.type === "till" ? "Till" : "Paybill";
-    const acct = d.accountNumber ? ` · ${escapeHtml(d.accountNumber)}` : "";
-    return `${label} ${escapeHtml(d.number)}${acct}`;
+    const label = d.label || "M-Pesa";
+    const phone = formatPhoneDisplay(d.phone || "");
+    return `${escapeHtml(label)} · ${escapeHtml(phone)}`;
   };
 
   const isFirstSet = !oldV;
@@ -1283,7 +1603,6 @@ function renderPayoutHistoryRow(change) {
         </span>
         <span class="text-[10px] text-white/30">${escapeHtml(dateStr)}</span>
       </div>
-
       ${!isFirstSet ? `
         <div class="flex items-center gap-2 text-xs mb-1">
           <span class="text-white/35 line-through">${fmtDest(oldV)}</span>
@@ -1301,16 +1620,8 @@ function renderPayoutHistoryRow(change) {
   `;
 }
 
-function validatePayoutVerifyStep() {
-  const password = document.getElementById("payout-verify-password").value;
-  const btn = document.getElementById("payout-save-btn");
-  btn.disabled = !password;
-  btn.classList.toggle("opacity-40", !password);
-  btn.classList.toggle("cursor-not-allowed", !password);
-}
-
 // -------------------------------------------------------------------------
-// Generic modal open/close (unchanged)
+// Generic modal open/close
 // -------------------------------------------------------------------------
 function openModal(overlayId, panelId) {
   const overlay = document.getElementById(overlayId);
@@ -1335,37 +1646,19 @@ function closeModal(overlayId, panelId) {
 // -------------------------------------------------------------------------
 function bindStaticListeners() {
   document.getElementById("vault-withdraw-btn").addEventListener("click", openWithdrawModal);
-  document
-    .querySelectorAll("#withdraw-modal-overlay .withdraw-modal-close-btn")
+  document.querySelectorAll("#withdraw-modal-overlay .withdraw-modal-close-btn")
     .forEach((b) => b.addEventListener("click", closeWithdrawModal));
-  document
-    .getElementById("withdraw-amount")
-    .addEventListener("input", onWithdrawAmountInput);
-  document
-    .getElementById("withdraw-confirm-btn")
-    .addEventListener("click", handleWithdrawConfirm);
+  document.getElementById("withdraw-amount").addEventListener("input", onWithdrawAmountInput);
+  document.getElementById("withdraw-confirm-btn").addEventListener("click", handleWithdrawConfirm);
 
-  document
-    .getElementById("vault-edit-payout-btn")
-    .addEventListener("click", openPayoutModal);
-  document
-    .querySelectorAll("#payout-modal-overlay .payout-modal-close-btn")
+  document.getElementById("vault-edit-payout-btn").addEventListener("click", openPayoutModal);
+  document.querySelectorAll("#payout-modal-overlay .payout-modal-close-btn")
     .forEach((b) => b.addEventListener("click", closePayoutModal));
-  document
-    .querySelectorAll(".payout-type-btn")
-    .forEach((b) => b.addEventListener("click", onPayoutTypeSelect));
-  document
-    .getElementById("payout-number-input")
-    .addEventListener("input", validatePayoutDetailsStep);
-  document
-  .getElementById("payout-verify-password")
-  .addEventListener("input", validatePayoutVerifyStep);
 
-  document
-    .getElementById("payout-account-input")
-    .addEventListener("input", validatePayoutDetailsStep);
+  document.getElementById("payout-phone-input").addEventListener("input", validatePayoutDetailsStep);
   document.getElementById("payout-continue-btn").addEventListener("click", onPayoutContinue);
   document.getElementById("payout-back-btn").addEventListener("click", onPayoutBack);
+  document.getElementById("payout-verify-password").addEventListener("input", validatePayoutVerifyStep);
   document.getElementById("payout-save-btn").addEventListener("click", handlePayoutSave);
 
   document.querySelectorAll(".plan-select-btn").forEach((btn) => {
@@ -1378,12 +1671,6 @@ function bindStaticListeners() {
 // -------------------------------------------------------------------------
 function formatKsh(n) {
   return `KSh ${Math.round(n).toLocaleString("en-KE")}`;
-}
-
-function formatDate(ts) {
-  if (!ts) return "";
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
-  return d.toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" });
 }
 
 function capitalize(s) {
@@ -1402,7 +1689,6 @@ function escapeAttr(str) {
 
 function formatPhoneDisplay(phone) {
   const p = String(phone || "");
-  // 2547XXXXXXXX → 07XX XXX XXX
   if (/^254\d{9}$/.test(p)) {
     return `0${p.slice(3, 6)} ${p.slice(6, 9)} ${p.slice(9, 12)}`;
   }

@@ -10,6 +10,7 @@ urlpatterns = [
     path("payout-destination/history", views.payout_destination_history_view, name="payout-destination-history"),
 
     path("withdraw", views.withdraw_view, name="withdraw"),
+    path("withdraw/preview", views.withdrawal_preview_view, name="withdraw-preview"),
     path("withdrawals", views.withdrawals_list_view, name="withdrawals-list"),
     path("withdrawals/<uuid:withdrawal_id>", views.withdrawal_status_view, name="withdrawal-status"),
 
